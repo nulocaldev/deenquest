@@ -1,12 +1,25 @@
 import React, { useState } from 'react';
 
+interface Profile {
+  birthdate: string;
+  location: string;
+}
+
+interface UserProfileFormProps {
+  onProfileSaved?: (data: { age: number; country: string }) => void;
+}
+
+interface SubmitProfileResult {
+  success: boolean;
+}
+
 // Mock API call
-const submitProfile = async (profile) => {
+const submitProfile = async (profile: Profile): Promise<SubmitProfileResult> => {
   // Replace with real API call
   return new Promise((resolve) => setTimeout(() => resolve({ success: true }), 1000));
 };
 
-export default function UserProfileForm() {
+export default function UserProfileForm({ onProfileSaved }: UserProfileFormProps) {
   const [birthdate, setBirthdate] = useState('');
   const [location, setLocation] = useState('');
   const [city, setCity] = useState('');
@@ -33,7 +46,7 @@ export default function UserProfileForm() {
     );
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
@@ -58,11 +71,18 @@ export default function UserProfileForm() {
     // Submit
     const profile = { birthdate, location: location || `${city}, ${country}` };
     const res = await submitProfile(profile);
-    if (res.success) setSuccess(true);
+    if (res.success) {
+      setSuccess(true);
+      // Call onProfileSaved with age and country for downstream use
+      if (onProfileSaved) {
+        const extractedCountry = country || (location ? location.split(', ').pop() || '' : '');
+        onProfileSaved({ age, country: extractedCountry });
+      }
+    }
     setLoading(false);
   };
 
-  function getAge(birthdate) {
+  function getAge(birthdate: string) {
     const today = new Date();
     const dob = new Date(birthdate);
     let age = today.getFullYear() - dob.getFullYear();

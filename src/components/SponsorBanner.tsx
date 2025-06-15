@@ -24,7 +24,12 @@ const sponsors = [
   },
 ];
 
-function filterSponsors({ age, country }) {
+interface SponsorFilter {
+  age: number;
+  country: string;
+}
+
+function filterSponsors({ age, country }: SponsorFilter) {
   return sponsors.filter(s =>
     s.active &&
     age >= s.minAge &&
@@ -33,7 +38,7 @@ function filterSponsors({ age, country }) {
   );
 }
 
-export default function SponsorBanner({ age, country }) {
+export default function SponsorBanner({ age, country }: SponsorFilter) {
   const filtered = filterSponsors({ age, country });
   if (!filtered.length) return null;
   return (
