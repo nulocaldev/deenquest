@@ -19,7 +19,7 @@ interface HikmahCardProps {
   rarity?: RarityLevel;
   points?: number;
   imageUrl?: string;
-  onClick?: () => void;
+  cardId?: string;
 }
 
 const rarityColors = {
@@ -47,14 +47,13 @@ const HikmahCard: React.FC<HikmahCardProps> = ({
   rarity = "common",
   points = 10,
   imageUrl,
-  onClick,
+  cardId = "default-card",
 }) => {
-  const handleClick = React.useCallback(() => {
-    if (onClick) {
-      onClick();
-    }
-  }, [onClick]);
-
+  const handleClick = () => {
+    // Handle card click internally
+    console.log(`Clicked on card: ${title} (ID: ${cardId})`);
+    // You can add more functionality here like opening a modal, navigating, etc.
+  };
   return (
     <Card
       className={cn(
