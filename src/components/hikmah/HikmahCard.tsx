@@ -49,11 +49,9 @@ const HikmahCard: React.FC<HikmahCardProps> = ({
   imageUrl,
   onClick,
 }) => {
-  const handleClick = () => {
-    if (onClick) {
-      onClick();
-    }
-  };
+  const handleClick = React.useCallback(() => {
+    onClick?.();
+  }, [onClick]);
 
   return (
     <Card
@@ -62,7 +60,7 @@ const HikmahCard: React.FC<HikmahCardProps> = ({
         rarityColors[rarity],
         "border-2",
       )}
-      onClick={handleClick}
+      onClick={onClick ? handleClick : undefined}
     >
       {/* Aurora background effect */}
       <div className="absolute inset-0 opacity-10">
