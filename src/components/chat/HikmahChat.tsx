@@ -74,7 +74,7 @@ export default function HikmahChat({
     }
   }, [messages]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = React.useCallback(() => {
     if (inputValue.trim() === "") return;
 
     const newUserMessage: Message = {
@@ -105,18 +105,21 @@ export default function HikmahChat({
 
       setMessages((prev) => [...prev, aiResponse]);
     }, 1000);
-  };
+  }, [inputValue, messages, onSendMessage]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
+  const handleKeyPress = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    },
+    [handleSendMessage],
+  );
 
-  const handleSuggestedTopic = (topic: string) => {
+  const handleSuggestedTopic = React.useCallback((topic: string) => {
     setInputValue(topic);
-  };
+  }, []);
 
   return (
     <Card className="w-full max-w-md mx-auto h-[600px] flex flex-col bg-background">

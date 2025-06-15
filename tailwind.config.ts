@@ -52,11 +52,23 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        aurora: {
+          pink: "#ff006e",
+          purple: "#8338ec",
+          blue: "#3a86ff",
+          cyan: "#06ffa5",
+          yellow: "#ffbe0b",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "3xl": "1.5rem",
+        "4xl": "2rem",
+      },
+      backdropBlur: {
+        xs: "2px",
       },
       keyframes: {
         "accordion-down": {
@@ -67,10 +79,52 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        aurora: {
+          "0%, 100%": {
+            transform: "translateX(-50%) translateY(-50%) rotate(0deg)",
+          },
+          "50%": {
+            transform: "translateX(-50%) translateY(-50%) rotate(180deg)",
+          },
+        },
+        "aurora-2": {
+          "0%, 100%": {
+            transform: "translateX(-50%) translateY(-50%) rotate(180deg)",
+          },
+          "50%": {
+            transform: "translateX(-50%) translateY(-50%) rotate(360deg)",
+          },
+        },
+        float: {
+          "0%, 100%": {
+            transform: "translateY(0px)",
+          },
+          "50%": {
+            transform: "translateY(-10px)",
+          },
+        },
+        "pulse-glow": {
+          "0%, 100%": {
+            opacity: "0.5",
+          },
+          "50%": {
+            opacity: "1",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        aurora: "aurora 20s linear infinite",
+        "aurora-2": "aurora-2 25s linear infinite",
+        float: "float 3s ease-in-out infinite",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+      },
+      boxShadow: {
+        aurora:
+          "0 0 20px rgba(255, 0, 110, 0.3), 0 0 40px rgba(131, 56, 236, 0.2), 0 0 60px rgba(58, 134, 255, 0.1)",
+        glow: "0 0 20px rgba(255, 255, 255, 0.1)",
+        "inner-glow": "inset 0 0 20px rgba(255, 255, 255, 0.1)",
       },
     },
   },

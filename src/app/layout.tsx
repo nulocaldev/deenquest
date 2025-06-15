@@ -7,8 +7,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Tempo - Modern SaaS Starter",
-  description: "A modern full-stack starter template powered by Next.js",
+  title: "DeenQuest - AI-Powered Islamic Wisdom Companion",
+  description:
+    "An interactive application that gamifies Islamic learning through AI-powered features centered around wisdom collection, reflection, and community.",
 };
 
 export default function RootLayout({

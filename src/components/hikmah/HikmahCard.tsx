@@ -23,19 +23,21 @@ interface HikmahCardProps {
 }
 
 const rarityColors = {
-  common: "bg-slate-100 border-slate-200",
-  uncommon: "bg-green-50 border-green-200",
-  rare: "bg-blue-50 border-blue-200",
-  epic: "bg-purple-50 border-purple-200",
-  legendary: "bg-amber-50 border-amber-200",
+  common: "glass-morphism border-white/20",
+  uncommon:
+    "glass-morphism border-aurora-cyan/30 shadow-[0_0_20px_rgba(6,255,165,0.2)]",
+  rare: "glass-morphism border-aurora-blue/30 shadow-[0_0_20px_rgba(58,134,255,0.3)]",
+  epic: "glass-morphism border-aurora-purple/30 shadow-[0_0_20px_rgba(131,56,236,0.4)]",
+  legendary:
+    "glass-morphism border-aurora-yellow/30 shadow-[0_0_30px_rgba(255,190,11,0.5)]",
 };
 
 const rarityBadges = {
-  common: "bg-slate-200 text-slate-700",
-  uncommon: "bg-green-200 text-green-700",
-  rare: "bg-blue-200 text-blue-700",
-  epic: "bg-purple-200 text-purple-700",
-  legendary: "bg-amber-200 text-amber-700",
+  common: "bg-white/20 text-white border-white/30",
+  uncommon: "bg-aurora-cyan/20 text-aurora-cyan border-aurora-cyan/30",
+  rare: "bg-aurora-blue/20 text-aurora-blue border-aurora-blue/30",
+  epic: "bg-aurora-purple/20 text-aurora-purple border-aurora-purple/30",
+  legendary: "bg-aurora-yellow/20 text-aurora-yellow border-aurora-yellow/30",
 };
 
 const HikmahCard: React.FC<HikmahCardProps> = ({
@@ -50,54 +52,80 @@ const HikmahCard: React.FC<HikmahCardProps> = ({
   return (
     <Card
       className={cn(
-        "w-[350px] h-[450px] flex flex-col cursor-pointer transition-transform hover:scale-105",
+        "w-[350px] h-[450px] flex flex-col cursor-pointer transition-all duration-500 hover:scale-105 hover:rotate-1 relative overflow-hidden rounded-3xl",
         rarityColors[rarity],
         "border-2",
       )}
       onClick={onClick || (() => {})}
     >
-      <CardHeader className="relative pb-2">
+      {/* Aurora background effect */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-aurora-purple/20 via-aurora-pink/20 to-aurora-cyan/20 animate-aurora"></div>
+      </div>
+
+      <CardHeader className="relative pb-3 z-10">
         <div className="flex justify-between items-center">
-          <Badge className={cn(rarityBadges[rarity], "capitalize")}>
+          <Badge
+            className={cn(
+              rarityBadges[rarity],
+              "capitalize rounded-full px-3 py-1 font-semibold",
+            )}
+          >
             {rarity}
           </Badge>
-          <Badge variant="outline" className="font-semibold">
+          <Badge className="bg-white/20 text-white border-white/30 font-bold rounded-full px-3 py-1">
             {points} pts
           </Badge>
         </div>
-        <h3 className="text-xl font-bold mt-2">{title}</h3>
+        <h3 className="text-2xl font-bold mt-3 text-white bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+          {title}
+        </h3>
       </CardHeader>
 
-      <CardContent className="flex-grow flex flex-col justify-center text-center px-6">
+      <CardContent className="flex-grow flex flex-col justify-center text-center px-6 z-10">
         {imageUrl && (
-          <div className="mb-4 flex justify-center">
-            <img
-              src={
-                imageUrl ||
-                "https://images.unsplash.com/photo-1604076913837-52ab5629fba9?w=300&q=80"
-              }
-              alt="Hikmah illustration"
-              className="w-24 h-24 object-cover rounded-full border-2 border-slate-200"
-            />
+          <div className="mb-6 flex justify-center">
+            <div className="relative">
+              <img
+                src={
+                  imageUrl ||
+                  "https://images.unsplash.com/photo-1604076913837-52ab5629fba9?w=300&q=80"
+                }
+                alt="Hikmah illustration"
+                className="w-28 h-28 object-cover rounded-full border-3 border-white/30 shadow-glow"
+              />
+              <div className="absolute inset-0 rounded-full bg-gradient-to-t from-transparent to-white/10"></div>
+            </div>
           </div>
         )}
-        <p className="text-lg italic">"{content}"</p>
+        <p className="text-lg italic text-white/90 leading-relaxed font-medium">
+          &quot;{content}&quot;
+        </p>
       </CardContent>
 
-      <CardFooter className="border-t pt-3 flex justify-center">
-        <p className="text-sm text-muted-foreground">{source}</p>
+      <CardFooter className="border-t border-white/10 pt-4 flex justify-center z-10">
+        <p className="text-sm text-gray-300 font-medium">{source}</p>
       </CardFooter>
 
-      {/* Decorative elements based on rarity */}
+      {/* Enhanced decorative elements based on rarity */}
       {rarity === "legendary" && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl">
-          <div className="absolute -inset-1 opacity-20 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400 blur-sm"></div>
-        </div>
+        <>
+          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+            <div className="absolute -inset-2 opacity-30 bg-gradient-to-r from-aurora-yellow via-aurora-pink to-aurora-yellow blur-md animate-pulse-glow"></div>
+          </div>
+          <div className="absolute top-4 right-4 w-3 h-3 bg-aurora-yellow rounded-full animate-pulse-glow z-20"></div>
+        </>
       )}
       {rarity === "epic" && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl">
-          <div className="absolute -inset-1 opacity-20 bg-gradient-to-r from-purple-400 via-violet-500 to-purple-400 blur-sm"></div>
-        </div>
+        <>
+          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+            <div className="absolute -inset-2 opacity-25 bg-gradient-to-r from-aurora-purple via-aurora-pink to-aurora-purple blur-md animate-pulse-glow"></div>
+          </div>
+          <div className="absolute top-4 right-4 w-2 h-2 bg-aurora-purple rounded-full animate-pulse-glow z-20"></div>
+        </>
+      )}
+      {rarity === "rare" && (
+        <div className="absolute top-4 right-4 w-2 h-2 bg-aurora-blue rounded-full animate-pulse-glow z-20"></div>
       )}
     </Card>
   );
