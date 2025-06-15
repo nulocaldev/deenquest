@@ -130,20 +130,22 @@ export default function Home() {
               <Sparkles className="h-3 w-3 text-aurora-cyan" />
             </Badge>
 
-            <div className="relative">
-              <Avatar className="h-12 w-12 ring-2 ring-aurora-purple/50 ring-offset-2 ring-offset-background">
-                <AvatarImage
-                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=user123"
-                  alt="User"
-                />
-                <AvatarFallback className="bg-gradient-to-br from-aurora-purple to-aurora-pink text-white font-bold">
-                  U
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-aurora-cyan rounded-full flex items-center justify-center text-xs font-bold text-black">
-                {userStats.level}
+            <Link href="/profile">
+              <div className="relative cursor-pointer">
+                <Avatar className="h-12 w-12 ring-2 ring-aurora-purple/50 ring-offset-2 ring-offset-background hover:ring-aurora-purple/70 transition-all">
+                  <AvatarImage
+                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=user123"
+                    alt="User"
+                  />
+                  <AvatarFallback className="bg-gradient-to-br from-aurora-purple to-aurora-pink text-white font-bold">
+                    U
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-aurora-cyan rounded-full flex items-center justify-center text-xs font-bold text-black">
+                  {userStats.level}
+                </div>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </header>
@@ -161,13 +163,15 @@ export default function Home() {
                 Discover divine wisdom
               </p>
             </div>
-            <Button
-              className="glass-morphism hover:bg-white/10 text-white border-white/20 rounded-2xl px-6"
-              size="sm"
-            >
-              <Star className="h-4 w-4 mr-2" />
-              View All Cards
-            </Button>
+            <Link href="/cards">
+              <Button
+                className="glass-morphism hover:bg-white/10 text-white border-white/20 rounded-2xl px-6"
+                size="sm"
+              >
+                <Star className="h-4 w-4 mr-2" />
+                View All Cards
+              </Button>
+            </Link>
           </div>
 
           <div className="flex justify-center">
@@ -195,117 +199,125 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="glass-morphism hover:shadow-aurora transition-all duration-300 cursor-pointer group border-white/10 rounded-3xl overflow-hidden">
-              <CardHeader className="pb-3 relative">
-                <div className="absolute top-4 right-4 w-2 h-2 bg-aurora-pink rounded-full animate-pulse-glow"></div>
-                <CardTitle className="flex items-center gap-3 text-white">
-                  <div className="p-2 rounded-2xl bg-aurora-purple/20 group-hover:bg-aurora-purple/30 transition-colors">
-                    <BookOpen className="h-6 w-6 text-aurora-purple" />
-                  </div>
-                  <div>
-                    <span className="text-lg">Hikmah Cards</span>
-                    <p className="text-xs text-muted-foreground font-normal">
-                      Collect & Learn
-                    </p>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-4">
-                <CardDescription className="text-gray-300">
-                  Collect and explore Islamic wisdom cards with beautiful
-                  designs
-                </CardDescription>
-              </CardContent>
-              <CardFooter className="pt-0">
-                <Badge className="bg-aurora-pink/20 text-aurora-pink border-aurora-pink/30 rounded-full">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  10 New Cards
-                </Badge>
-              </CardFooter>
-            </Card>
+            <Link href="/cards">
+              <Card className="glass-morphism hover:shadow-aurora transition-all duration-300 cursor-pointer group border-white/10 rounded-3xl overflow-hidden">
+                <CardHeader className="pb-3 relative">
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-aurora-pink rounded-full animate-pulse-glow"></div>
+                  <CardTitle className="flex items-center gap-3 text-white">
+                    <div className="p-2 rounded-2xl bg-aurora-purple/20 group-hover:bg-aurora-purple/30 transition-colors">
+                      <BookOpen className="h-6 w-6 text-aurora-purple" />
+                    </div>
+                    <div>
+                      <span className="text-lg">Hikmah Cards</span>
+                      <p className="text-xs text-muted-foreground font-normal">
+                        Collect & Learn
+                      </p>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <CardDescription className="text-gray-300">
+                    Collect and explore Islamic wisdom cards with beautiful
+                    designs
+                  </CardDescription>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <Badge className="bg-aurora-pink/20 text-aurora-pink border-aurora-pink/30 rounded-full">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    10 New Cards
+                  </Badge>
+                </CardFooter>
+              </Card>
+            </Link>
 
-            <Card className="glass-morphism hover:shadow-aurora transition-all duration-300 cursor-pointer group border-white/10 rounded-3xl overflow-hidden">
-              <CardHeader className="pb-3 relative">
-                <div className="absolute top-4 right-4 w-2 h-2 bg-aurora-cyan rounded-full animate-pulse-glow"></div>
-                <CardTitle className="flex items-center gap-3 text-white">
-                  <div className="p-2 rounded-2xl bg-aurora-cyan/20 group-hover:bg-aurora-cyan/30 transition-colors">
-                    <BookOpen className="h-6 w-6 text-aurora-cyan" />
-                  </div>
-                  <div>
-                    <span className="text-lg">AI Journal</span>
-                    <p className="text-xs text-muted-foreground font-normal">
-                      Reflect & Grow
-                    </p>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-4">
-                <CardDescription className="text-gray-300">
-                  Reflect on Islamic teachings with personalized AI guidance
-                </CardDescription>
-              </CardContent>
-              <CardFooter className="pt-0">
-                <Badge className="bg-aurora-cyan/20 text-aurora-cyan border-aurora-cyan/30 rounded-full">
-                  <Zap className="h-3 w-3 mr-1" />
-                  Daily Prompt Ready
-                </Badge>
-              </CardFooter>
-            </Card>
+            <Link href="/journal">
+              <Card className="glass-morphism hover:shadow-aurora transition-all duration-300 cursor-pointer group border-white/10 rounded-3xl overflow-hidden">
+                <CardHeader className="pb-3 relative">
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-aurora-cyan rounded-full animate-pulse-glow"></div>
+                  <CardTitle className="flex items-center gap-3 text-white">
+                    <div className="p-2 rounded-2xl bg-aurora-cyan/20 group-hover:bg-aurora-cyan/30 transition-colors">
+                      <BookOpen className="h-6 w-6 text-aurora-cyan" />
+                    </div>
+                    <div>
+                      <span className="text-lg">AI Journal</span>
+                      <p className="text-xs text-muted-foreground font-normal">
+                        Reflect & Grow
+                      </p>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <CardDescription className="text-gray-300">
+                    Reflect on Islamic teachings with personalized AI guidance
+                  </CardDescription>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <Badge className="bg-aurora-cyan/20 text-aurora-cyan border-aurora-cyan/30 rounded-full">
+                    <Zap className="h-3 w-3 mr-1" />
+                    Daily Prompt Ready
+                  </Badge>
+                </CardFooter>
+              </Card>
+            </Link>
 
-            <Card className="glass-morphism hover:shadow-aurora transition-all duration-300 cursor-pointer group border-white/10 rounded-3xl overflow-hidden">
-              <CardHeader className="pb-3 relative">
-                <div className="absolute top-4 right-4 w-2 h-2 bg-aurora-yellow rounded-full animate-pulse-glow"></div>
-                <CardTitle className="flex items-center gap-3 text-white">
-                  <div className="p-2 rounded-2xl bg-aurora-yellow/20 group-hover:bg-aurora-yellow/30 transition-colors">
-                    <Trophy className="h-6 w-6 text-aurora-yellow" />
-                  </div>
-                  <div>
-                    <span className="text-lg">Games</span>
-                    <p className="text-xs text-muted-foreground font-normal">
-                      Play & Earn
-                    </p>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-4">
-                <CardDescription className="text-gray-300">
-                  Play Islamic knowledge games and earn points & rewards
-                </CardDescription>
-              </CardContent>
-              <CardFooter className="pt-0">
-                <Badge className="bg-aurora-yellow/20 text-aurora-yellow border-aurora-yellow/30 rounded-full">
-                  <Trophy className="h-3 w-3 mr-1" />3 Games Available
-                </Badge>
-              </CardFooter>
-            </Card>
+            <Link href="/games">
+              <Card className="glass-morphism hover:shadow-aurora transition-all duration-300 cursor-pointer group border-white/10 rounded-3xl overflow-hidden">
+                <CardHeader className="pb-3 relative">
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-aurora-yellow rounded-full animate-pulse-glow"></div>
+                  <CardTitle className="flex items-center gap-3 text-white">
+                    <div className="p-2 rounded-2xl bg-aurora-yellow/20 group-hover:bg-aurora-yellow/30 transition-colors">
+                      <Trophy className="h-6 w-6 text-aurora-yellow" />
+                    </div>
+                    <div>
+                      <span className="text-lg">Games</span>
+                      <p className="text-xs text-muted-foreground font-normal">
+                        Play & Earn
+                      </p>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <CardDescription className="text-gray-300">
+                    Play Islamic knowledge games and earn points & rewards
+                  </CardDescription>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <Badge className="bg-aurora-yellow/20 text-aurora-yellow border-aurora-yellow/30 rounded-full">
+                    <Trophy className="h-3 w-3 mr-1" />3 Games Available
+                  </Badge>
+                </CardFooter>
+              </Card>
+            </Link>
 
-            <Card className="glass-morphism hover:shadow-aurora transition-all duration-300 cursor-pointer group border-white/10 rounded-3xl overflow-hidden">
-              <CardHeader className="pb-3 relative">
-                <div className="absolute top-4 right-4 w-2 h-2 bg-aurora-blue rounded-full animate-pulse-glow"></div>
-                <CardTitle className="flex items-center gap-3 text-white">
-                  <div className="p-2 rounded-2xl bg-aurora-blue/20 group-hover:bg-aurora-blue/30 transition-colors">
-                    <MessageCircle className="h-6 w-6 text-aurora-blue" />
-                  </div>
-                  <div>
-                    <span className="text-lg">Hikmah Chat</span>
-                    <p className="text-xs text-muted-foreground font-normal">
-                      Ask & Learn
-                    </p>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-4">
-                <CardDescription className="text-gray-300">
-                  Ask questions and receive Islamic guidance from AI
-                </CardDescription>
-              </CardContent>
-              <CardFooter className="pt-0">
-                <Badge className="bg-aurora-blue/20 text-aurora-blue border-aurora-blue/30 rounded-full">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  AI Assistant
-                </Badge>
-              </CardFooter>
-            </Card>
+            <Link href="/chat">
+              <Card className="glass-morphism hover:shadow-aurora transition-all duration-300 cursor-pointer group border-white/10 rounded-3xl overflow-hidden">
+                <CardHeader className="pb-3 relative">
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-aurora-blue rounded-full animate-pulse-glow"></div>
+                  <CardTitle className="flex items-center gap-3 text-white">
+                    <div className="p-2 rounded-2xl bg-aurora-blue/20 group-hover:bg-aurora-blue/30 transition-colors">
+                      <MessageCircle className="h-6 w-6 text-aurora-blue" />
+                    </div>
+                    <div>
+                      <span className="text-lg">Hikmah Chat</span>
+                      <p className="text-xs text-muted-foreground font-normal">
+                        Ask & Learn
+                      </p>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <CardDescription className="text-gray-300">
+                    Ask questions and receive Islamic guidance from AI
+                  </CardDescription>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <Badge className="bg-aurora-blue/20 text-aurora-blue border-aurora-blue/30 rounded-full">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    AI Assistant
+                  </Badge>
+                </CardFooter>
+              </Card>
+            </Link>
           </div>
         </section>
 
