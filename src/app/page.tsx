@@ -333,7 +333,7 @@ export default function ChatFirstHomepage() {
                     disabled={isLoading}
                   />
                   <Button
-                    onClick={handleSendMessage}
+                    onClick={() => handleSendMessage()}
                     disabled={inputValue.trim() === "" || isLoading}
                     className="frosted-button px-4"
                   >

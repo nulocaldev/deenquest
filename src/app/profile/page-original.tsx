@@ -149,7 +149,7 @@ export default function ProfilePage() {
                             <div className="w-full bg-gray-700 rounded-full h-2">
                               <div 
                                 className="bg-gradient-to-r from-aurora-cyan to-aurora-blue h-2 rounded-full"
-                                style={{ width: `${(achievement.progress / achievement.total) * 100}%` }}
+                                style={{ width: achievement.progress !== undefined && achievement.total ? `${(achievement.progress / achievement.total) * 100}%` : "0%" }}
                               ></div>
                             </div>
                           </div>

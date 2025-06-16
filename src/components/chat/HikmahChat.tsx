@@ -285,7 +285,7 @@ export default function HikmahChat({
           />
 
           <Button
-            onClick={handleSendMessage}
+            onClick={() => handleSendMessage()}
             size="icon"
             disabled={inputValue.trim() === ""}
             className="shrink-0"

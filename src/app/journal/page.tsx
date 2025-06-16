@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, BookOpen, Calendar, Search, Brain, Heart, Star, Sparkles, MessageCircle, Filter } from "lucide-react";
 import JournalPrompt from "@/components/journal/JournalPrompt";
 import { NativeSponsor } from "@/components/NativeSponsor";
-import { useClientTime } from "@/hooks/useClientTime";
+import { useClientTime, formatDate } from "@/hooks/useClientTime";
 
 interface JournalEntry {
   id: string;
@@ -25,7 +25,7 @@ interface JournalEntry {
 }
 
 export default function JournalPage() {
-  const { formatDate } = useClientTime();
+  const isClient = useClientTime();
   const [newEntry, setNewEntry] = useState({ title: "", content: "", mood: "peaceful" });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState("all");
@@ -159,7 +159,7 @@ export default function JournalPage() {
 
           {/* AI-Powered Prompt */}
           <section className="mb-12">
-            <JournalPrompt prompts={aiPrompts} />
+            <JournalPrompt prompt={aiPrompts[0]} />
           </section>
 
           {/* Quick Write */}
@@ -280,7 +280,7 @@ export default function JournalPage() {
                               </Badge>
                             ))}
                           </div>
-                          <p className="text-white/50 text-sm">{formatDate(entry.date)}</p>
+                          <p className="text-white/50 text-sm">{formatDate(new Date(entry.date), isClient)}</p>
                         </div>
                       </div>
                     </div>

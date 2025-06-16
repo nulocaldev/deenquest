@@ -52,10 +52,10 @@ export interface UnlockableContent {
 
 // Core conversation analysis class
 export class ConversationAnalyzer {
-  private islamicTopics: Map<string, string[]>;
-  private spiritualThemes: Map<string, string[]>;
-  private emotionalIndicators: Map<string, string[]>;
-  private knowledgeIndicators: Map<string, number>;
+  private islamicTopics: Map<string, string[]> = new Map();
+  private spiritualThemes: Map<string, string[]> = new Map();
+  private emotionalIndicators: Map<string, string[]> = new Map();
+  private knowledgeIndicators: Map<string, number> = new Map();
 
   constructor() {
     this.initializeAnalysisData();
@@ -338,9 +338,9 @@ export class ConversationAnalyzer {
 
 // Specialized analyzer for Islamic content
 export class IslamicContentAnalyzer extends ConversationAnalyzer {
-  private quranReferences: Map<string, string>;
-  private hadithCategories: Map<string, string[]>;
-  private islamicConcepts: Map<string, string>;
+  private quranReferences: Map<string, string> = new Map();
+  private hadithCategories: Map<string, string[]> = new Map();
+  private islamicConcepts: Map<string, string> = new Map();
 
   constructor() {
     super();

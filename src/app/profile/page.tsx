@@ -8,10 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, User, Trophy, Star, Calendar, TrendingUp, MessageCircle, Brain, Settings, Target, Zap, Award } from "lucide-react";
 import { NativeSponsor } from "@/components/NativeSponsor";
-import { useClientTime } from "@/hooks/useClientTime";
+import { useClientTime, formatDate } from "@/hooks/useClientTime";
 
 export default function ProfilePage() {
-  const { formatDate } = useClientTime();
+  const isClient = useClientTime();
   
   const [userStats] = useState({
     points: 1250,
@@ -260,7 +260,7 @@ export default function ProfilePage() {
                                 <div className="w-full bg-white/10 rounded-full h-1.5">
                                   <div 
                                     className="bg-gradient-to-r from-pastel-mint to-pastel-blue h-1.5 rounded-full transition-all duration-500"
-                                    style={{ width: `${(achievement.progress / achievement.total) * 100}%` }}
+                                    style={{ width: achievement.progress !== undefined && achievement.total ? `${(achievement.progress / achievement.total) * 100}%` : "0%" }}
                                   ></div>
                                 </div>
                               </div>

@@ -203,7 +203,7 @@ export default function ChatPage() {
                   className="flex-1 glass-morphism border-white/10 text-white placeholder-gray-400 rounded-2xl"
                 />
                 <Button
-                  onClick={handleSendMessage}
+                  onClick={() => handleSendMessage()}
                   disabled={!inputMessage.trim() || isTyping}
                   className="bg-gradient-to-r from-aurora-blue to-aurora-purple hover:from-aurora-blue/80 hover:to-aurora-purple/80 text-white rounded-2xl px-6"
                 >

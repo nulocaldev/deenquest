@@ -350,7 +350,7 @@ export default function Home() {
                     disabled={isTyping}
                   />
                   <Button
-                    onClick={handleSendMessage}
+                    onClick={() => handleSendMessage()}
                     disabled={inputValue.trim() === "" || isTyping}
                     className="bg-gradient-to-r from-aurora-cyan to-aurora-blue hover:from-aurora-cyan/80 hover:to-aurora-blue/80"
                   >
