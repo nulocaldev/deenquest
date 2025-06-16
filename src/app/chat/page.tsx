@@ -193,8 +193,24 @@ export default function ChatPage() {
     }
   };
 
+  // DEBUG: Always show a static button and debug info at the top
+  const [showDebug, setShowDebug] = useState(true);
+
   return (
     <div className="min-h-screen elegant-bg flex flex-col">
+      {/* DEBUG PANEL - Always visible */}
+      <div style={{position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 9999, background: 'yellow', color: 'black', padding: 10, borderBottom: '2px solid red', fontWeight: 'bold'}}>
+        <span>DEBUG PANEL: </span>
+        <button style={{fontSize: 18, padding: 8, background: 'red', color: 'white', border: '2px solid black', borderRadius: 8, marginRight: 20}}>STATIC TEST BUTTON</button>
+        <span>messages.length: {messages.length} | first message suggestions: {JSON.stringify(messages[0]?.suggestions)} | hydrated: {typeof window !== 'undefined' ? 'yes' : 'no'}</span>
+        <button style={{marginLeft: 20, fontSize: 14}} onClick={() => setShowDebug((v) => !v)}>{showDebug ? 'Hide' : 'Show'} Debug State</button>
+      </div>
+      {showDebug && (
+        <div style={{position: 'fixed', top: 50, left: 0, width: '100vw', zIndex: 9998, background: '#222', color: 'lime', padding: 10, borderBottom: '2px solid lime', fontSize: 12, maxHeight: 200, overflow: 'auto'}}>
+          <pre>{JSON.stringify(messages, null, 2)}</pre>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-50 w-full elegant-header">
         <div className="container flex h-20 items-center justify-between px-6">
