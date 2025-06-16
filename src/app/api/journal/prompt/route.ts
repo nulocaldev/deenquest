@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const { topic } = await request.json();
 
-    const deepseek = new DeepSeekAPI(process.env.DEEPSEEK_API_KEY);
+    const deepseek = new DeepSeekAPI({ apiKey: process.env.DEEPSEEK_API_KEY });
     const prompt = await deepseek.generateJournalPrompt(topic);
 
     return NextResponse.json({ prompt });
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   // For simple GET requests without topic
   try {
-    const deepseek = new DeepSeekAPI(process.env.DEEPSEEK_API_KEY);
+    const deepseek = new DeepSeekAPI({ apiKey: process.env.DEEPSEEK_API_KEY });
     const prompt = await deepseek.generateJournalPrompt();
 
     return NextResponse.json({ prompt });

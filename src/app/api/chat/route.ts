@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const deepseek = new DeepSeekAPI(process.env.DEEPSEEK_API_KEY);
+      const deepseek = new DeepSeekAPI({ apiKey: process.env.DEEPSEEK_API_KEY });
       const response = await deepseek.generateIslamicResponse(message, context);
 
       return NextResponse.json({ 

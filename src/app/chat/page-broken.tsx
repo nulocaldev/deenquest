@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Send, MessageCircle, Bot, User, Sparkles, BookOpen, Heart, Star } from "lucide-react";
 import HikmahChat from "@/components/chat/HikmahChat";
 import { useClientTime, formatTime } from "@/hooks/useClientTime";
+import type { UnlockNotification } from '@/lib/content-unlock-engine';
 
 export default function ChatPage() {
   const isClient = useClientTime();
@@ -117,7 +118,7 @@ export default function ChatPage() {
       if (data.unlockedContent && data.unlockedContent.length > 0) {
         setUnlockedContent(prev => [...prev, ...data.unlockedContent]);
         // Show notification for unlocked content
-        data.unlockedContent.forEach(item => {
+        data.unlockedContent.forEach((item: UnlockNotification) => {
           console.log(`🎉 Unlocked: ${item.type} - ${item.title}`);
         });
       }
@@ -227,65 +228,65 @@ export default function ChatPage() {
             {messages.map((message) => {
               console.log('Rendering message:', message.id, 'suggestions:', message.suggestions);
               return (
-              <div key={message.id} className="space-y-3">
-                <div
-                  className={`flex gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  {message.type === 'ai' && (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-aurora-blue to-aurora-purple flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-white" />
-                    </div>
-                  )}
+                <div key={message.id} className="space-y-3">
                   <div
-                    className={`max-w-[70%] p-4 rounded-3xl ${
-                      message.type === 'user'
-                        ? 'bg-gradient-to-r from-aurora-purple to-aurora-pink text-white ml-auto'
-                        : 'glass-morphism border-white/10 text-white'
-                    }`}
+                    className={`flex gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div 
-                      className="text-sm leading-relaxed"
-                      dangerouslySetInnerHTML={formatRichText(message.content)}
-                    />
-                    {message.spiritualGuidance && (
-                      <div className="mt-3 p-3 bg-aurora-gold/10 border border-aurora-gold/30 rounded-xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Heart className="h-4 w-4 text-aurora-gold" />
-                          <span className="text-xs font-medium text-aurora-gold">Spiritual Guidance</span>
-                        </div>
-                        <p className="text-xs text-aurora-gold/90">{message.spiritualGuidance}</p>
+                    {message.type === 'ai' && (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-aurora-blue to-aurora-purple flex items-center justify-center">
+                        <Bot className="h-4 w-4 text-white" />
                       </div>
                     )}
-                    <span className="text-xs opacity-70 mt-2 block">
-                      {formatTime(new Date(message.timestamp), isClient)}
-                    </span>
+                    <div
+                      className={`max-w-[70%] p-4 rounded-3xl ${
+                        message.type === 'user'
+                          ? 'bg-gradient-to-r from-aurora-purple to-aurora-pink text-white ml-auto'
+                          : 'glass-morphism border-white/10 text-white'
+                      }`}
+                    >
+                      <div 
+                        className="text-sm leading-relaxed"
+                        dangerouslySetInnerHTML={formatRichText(message.content)}
+                      />
+                      {message.spiritualGuidance && (
+                        <div className="mt-3 p-3 bg-aurora-gold/10 border border-aurora-gold/30 rounded-xl">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Heart className="h-4 w-4 text-aurora-gold" />
+                            <span className="text-xs font-medium text-aurora-gold">Spiritual Guidance</span>
+                          </div>
+                          <p className="text-xs text-aurora-gold/90">{message.spiritualGuidance}</p>
+                        </div>
+                      )}
+                      <span className="text-xs opacity-70 mt-2 block">
+                        {formatTime(new Date(message.timestamp), isClient)}
+                      </span>
+                    </div>
+                    {message.type === 'user' && (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-aurora-cyan to-aurora-blue flex items-center justify-center">
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                    )}
                   </div>
-                  {message.type === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-aurora-cyan to-aurora-blue flex items-center justify-center">
-                      <User className="h-4 w-4 text-white" />
+                  {/* Clickable Suggestions */}
+                  {message.type === 'ai' && message.suggestions && message.suggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2 ml-11 mt-2">
+                      {message.suggestions.map((suggestion: string, index: number) => (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          className="bg-white/10 border-aurora-cyan/50 text-aurora-cyan hover:bg-aurora-cyan/20 hover:border-aurora-cyan text-xs rounded-full px-3 py-1 h-auto backdrop-blur-sm"
+                        >
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          {suggestion}
+                        </Button>
+                      ))}
                     </div>
                   )}
                 </div>
-                
-                {/* Clickable Suggestions */}
-                {message.type === 'ai' && message.suggestions && message.suggestions.length > 0 && (
-                  <div className="flex flex-wrap gap-2 ml-11 mt-2">
-                    {message.suggestions.map((suggestion: string, index: number) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="bg-white/10 border-aurora-cyan/50 text-aurora-cyan hover:bg-aurora-cyan/20 hover:border-aurora-cyan text-xs rounded-full px-3 py-1 h-auto backdrop-blur-sm"
-                      >
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        {suggestion}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+              );
+            })}
             
             {/* Unlocked Content Notifications */}
             {unlockedContent.length > 0 && (
@@ -336,7 +337,7 @@ export default function ChatPage() {
                   className="flex-1 glass-morphism border-white/10 text-white placeholder-gray-400 rounded-2xl"
                 />
                 <Button
-                  onClick={handleSendMessage}
+                  onClick={() => handleSendMessage()}
                   disabled={!inputMessage.trim() || isTyping}
                   className="bg-gradient-to-r from-aurora-blue to-aurora-purple hover:from-aurora-blue/80 hover:to-aurora-purple/80 text-white rounded-2xl px-6"
                 >

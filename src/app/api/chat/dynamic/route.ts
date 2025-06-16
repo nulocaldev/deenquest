@@ -251,11 +251,11 @@ function generateFallbackResponse(
     curious: "I love your curiosity about Islamic teachings! Knowledge seeking is highly valued in Islam. What specific aspect would you like to explore together?",
     seeking: "I'm here to help guide you on your spiritual journey. What particular guidance or understanding are you seeking today?",
     peaceful: "MashAllah, it sounds like you're in a good spiritual space. How can I help you continue growing in your Islamic journey?",
-    reflective: "Reflection is such an important part of spiritual growth. What insights or thoughts would you like to explore together?"
+    reflective: "Reflection is such an important part of spiritual growth. What insights or thoughts would you like to explore together?",
+    neutral: "Thank you for sharing with me. I'm here to support your Islamic journey. What would you like to discuss or learn about today?"
   };
 
-  return responses[context.emotionalTone] || 
-    "Thank you for sharing with me. I'm here to support your Islamic journey. What would you like to discuss or learn about today?";
+  return responses[context.emotionalTone];
 }
 
 // Generate conversation suggestions based on context
