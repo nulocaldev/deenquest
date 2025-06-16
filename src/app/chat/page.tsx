@@ -5,37 +5,77 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, MessageCircle, Bot, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Send, MessageCircle, Bot, User, Sparkles, BookOpen, Heart, Star } from "lucide-react";
 import HikmahChat from "@/components/chat/HikmahChat";
+import { useClientTime, formatTime } from "@/hooks/useClientTime";
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([
+  const isClient = useClientTime();
+  const [messages, setMessages] = useState<any[]>([
     {
       id: 1,
       type: "ai",
       content: "As-salamu alaykum! I'm your Hikmah AI assistant. I'm here to help you with Islamic questions, provide guidance, and share wisdom from the Quran and Sunnah. How can I assist you today?",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      suggestions: [
+        "Tell me about the pillars of Islam",
+        "How can I improve my prayer?",
+        "Share wisdom about patience",
+        "What does the Quran say about gratitude?"
+      ]
     }
   ]);
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
+  const [unlockedContent, setUnlockedContent] = useState<any[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
+  const handleSuggestionClick = (suggestion: string) => {
+    setInputMessage(suggestion);
+    handleSendMessage(suggestion);
+  };
+
+  const formatRichText = (text: string) => {
+    // Convert markdown-like formatting to JSX
+    let formattedText = text;
+    
+    // Bold text **text**
+    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-aurora-cyan">$1</strong>');
+    
+    // Italic text *text*
+    formattedText = formattedText.replace(/\*(.*?)\*/g, '<em class="italic text-aurora-blue">$1</em>');
+    
+    // Quran verses [Quran X:Y]
+    formattedText = formattedText.replace(/\[Quran (\d+:\d+)\]/g, '<span class="inline-flex items-center px-2 py-1 bg-aurora-blue/20 text-aurora-cyan text-xs font-medium rounded-full border border-aurora-blue/30">[Quran $1]</span>');
+    
+    // Hadith references [Hadith - Source]
+    formattedText = formattedText.replace(/\[Hadith - (.*?)\]/g, '<span class="inline-flex items-center px-2 py-1 bg-aurora-purple/20 text-aurora-purple text-xs font-medium rounded-full border border-aurora-purple/30">[Hadith - $1]</span>');
+    
+    // Arabic text (enhanced styling)
+    formattedText = formattedText.replace(/\{ar\}(.*?)\{\/ar\}/g, '<span class="text-lg font-arabic text-aurora-gold bg-aurora-gold/10 px-2 py-1 rounded border border-aurora-gold/30" dir="rtl">$1</span>');
+    
+    return { __html: formattedText };
+  };
+
+  const handleSendMessage = async (messageText?: string) => {
+    const message = messageText || inputMessage;
+    if (!message.trim()) return;
 
     const userMessage = {
       id: messages.length + 1,
       type: "user",
-      content: inputMessage,
+      content: message,
       timestamp: new Date().toISOString()
     };
 
@@ -43,20 +83,98 @@ export default function ChatPage() {
     setInputMessage("");
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Call Dynamic Chat API
+      const response = await fetch('/api/chat/dynamic', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          userId: 'user123', // In real app, get from auth
+          conversationHistory: messages.map(msg => ({
+            role: msg.type === 'user' ? 'user' : 'assistant',
+            content: msg.content
+          }))
+        }),
+      });
+
+      const data = await response.json();
+      
       const aiResponse = {
         id: messages.length + 2,
         type: "ai",
-        content: generateAIResponse(inputMessage),
-        timestamp: new Date().toISOString()
+        content: data.response,
+        timestamp: new Date().toISOString(),
+        suggestions: data.suggestions || [],
+        spiritualGuidance: data.spiritualGuidance
       };
+
       setMessages(prev => [...prev, aiResponse]);
+      
+      // Handle unlocked content
+      if (data.unlockedContent && data.unlockedContent.length > 0) {
+        setUnlockedContent(prev => [...prev, ...data.unlockedContent]);
+        // Show notification for unlocked content
+        data.unlockedContent.forEach((item: any) => {
+          console.log(`🎉 Unlocked: ${item.type} - ${item.title}`);
+        });
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      
+      // Fallback to basic chat API
+      try {
+        const fallbackResponse = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: message,
+            context: "Islamic guidance and wisdom chat"
+          }),
+        });
+
+        const fallbackData = await fallbackResponse.json();
+        
+        const aiResponse = {
+          id: messages.length + 2,
+          type: "ai",
+          content: fallbackData.response,
+          timestamp: new Date().toISOString(),
+          suggestions: [
+            "Tell me more about this topic",
+            "Can you provide a Quranic perspective?",
+            "What would the Prophet (PBUH) say about this?"
+          ]
+        };
+
+        setMessages(prev => [...prev, aiResponse]);
+      } catch (fallbackError) {
+        console.error('Fallback API also failed:', fallbackError);
+        
+        const errorResponse = {
+          id: messages.length + 2,
+          type: "ai",
+          content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment. May Allah guide and bless you.",
+          timestamp: new Date().toISOString(),
+          suggestions: [
+            "Try asking again",
+            "Check your connection",
+            "Ask a different question"
+          ]
+        };
+        
+        setMessages(prev => [...prev, errorResponse]);
+      }
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
-  const generateAIResponse = (question) => {
+  const generateAIResponse = (question: string): string => {
     // Simple response generator - in real app, this would be an AI API call
     const responses = [
       "This is a thoughtful question. In Islamic tradition, we find guidance in both the Quran and the teachings of Prophet Muhammad (peace be upon him).",
@@ -68,7 +186,7 @@ export default function ChatPage() {
     return responses[Math.floor(Math.random() * responses.length)];
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -76,9 +194,9 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="min-h-screen aurora-bg flex flex-col">
+    <div className="min-h-screen elegant-bg flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full ios-blur">
+      <header className="sticky top-0 z-50 w-full elegant-header">
         <div className="container flex h-20 items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Link href="/">
@@ -99,42 +217,113 @@ export default function ChatPage() {
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
             <span className="text-sm text-gray-300">Online</span>
           </div>
-        </div>
-      </header>
+        </div>        {/* DEBUG BANNER */}
+        </header>
 
       {/* Chat Messages */}
       <div className="flex-1 container px-6 py-4 overflow-hidden">
         <div className="h-full flex flex-col max-w-4xl mx-auto">
           <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                {message.type === 'ai' && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-aurora-blue to-aurora-purple flex items-center justify-center">
-                    <Bot className="h-4 w-4 text-white" />
-                  </div>
-                )}
-                <div
-                  className={`max-w-[70%] p-4 rounded-3xl ${
-                    message.type === 'user'
-                      ? 'bg-gradient-to-r from-aurora-purple to-aurora-pink text-white ml-auto'
-                      : 'glass-morphism border-white/10 text-white'
-                  }`}
-                >
-                  <p className="text-sm leading-relaxed">{message.content}</p>
-                  <span className="text-xs opacity-70 mt-2 block">
-                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-                {message.type === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-aurora-cyan to-aurora-blue flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
+            {messages.map((message) => {
+              return (
+                <div key={message.id} className="space-y-3">
+                  <div
+                    className={`flex gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    {message.type === 'ai' && (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-aurora-blue to-aurora-purple flex items-center justify-center">
+                        <Bot className="h-4 w-4 text-white" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[70%] p-4 rounded-3xl ${
+                        message.type === 'user'
+                          ? 'bg-gradient-to-r from-aurora-purple to-aurora-pink text-white ml-auto'
+                          : 'glass-morphism border-white/10 text-white'
+                      }`}
+                    >
+                      <div 
+                        className="text-sm leading-relaxed"
+                        dangerouslySetInnerHTML={formatRichText(message.content)}
+                      />
+                      {message.spiritualGuidance && (
+                        <div className="mt-3 p-3 bg-aurora-gold/10 border border-aurora-gold/30 rounded-xl">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Heart className="h-4 w-4 text-aurora-gold" />
+                            <span className="text-xs font-medium text-aurora-gold">Spiritual Guidance</span>
+                          </div>
+                          <p className="text-xs text-aurora-gold/90">{message.spiritualGuidance}</p>
+                        </div>
+                      )}
+                      <span className="text-xs opacity-70 mt-2 block">
+                        {formatTime(new Date(message.timestamp), isClient)}
+                      </span>
+                    </div>
+                    {message.type === 'user' && (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-aurora-cyan to-aurora-blue flex items-center justify-center">
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                    )}                </div>
+                
+                {/* Clickable AI Suggestions */}
+                {message.type === 'ai' && message.suggestions && message.suggestions.length > 0 && (
+                  <div className="ml-11 mt-3">
+                    <div className="flex flex-wrap gap-2">
+                      {message.suggestions.map((suggestion: string, index: number) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            console.log('Suggestion clicked:', suggestion);
+                            handleSuggestionClick(suggestion);
+                          }}
+                          className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:shadow-lg"
+                          style={{
+                            backgroundColor: '#3b82f6',
+                            color: '#ffffff',
+                            border: '1px solid #60a5fa',
+                            fontWeight: '500',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#2563eb';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 10px 25px rgba(59, 130, 246, 0.3)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#3b82f6';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
+            
+            {/* Unlocked Content Notifications */}
+            {unlockedContent.length > 0 && (
+              <div className="flex justify-center">
+                <div className="glass-morphism border-aurora-gold/30 p-4 rounded-2xl max-w-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Star className="h-5 w-5 text-aurora-gold" />
+                    <span className="font-medium text-aurora-gold">Content Unlocked!</span>
+                  </div>
+                  <div className="space-y-1">
+                    {unlockedContent.slice(-3).map((item, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm text-white/80">
+                        <BookOpen className="h-4 w-4 text-aurora-cyan" />
+                        <span>{item.type}: {item.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
             
             {isTyping && (
               <div className="flex gap-3 justify-start">

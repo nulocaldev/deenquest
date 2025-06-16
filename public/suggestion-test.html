@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suggestions Visibility Test</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+        }
+        .suggestion-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            margin: 4px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+            background-color: rgba(59, 130, 246, 0.2);
+            color: rgb(59, 130, 246);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+        .suggestion-button:hover {
+            background-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .big-test {
+            background: red !important;
+            color: white !important;
+            border: 3px solid yellow !important;
+            font-size: 16px !important;
+            padding: 15px 30px !important;
+            margin: 10px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 Suggestions Visibility Test</h1>
+        <p>This page tests if the suggestion buttons are visible with the exact same styling as the chat page.</p>
+        
+        <div style="margin: 20px 0;">
+            <h3>🤖 AI Message:</h3>
+            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; margin: 10px 0;">
+                As-salamu alaykum! I'm your Hikmah AI assistant. How can I assist you today?
+            </div>
+            
+            <div style="margin-left: 44px; margin-top: 12px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button class="suggestion-button" onclick="testClick('pillars')">
+                        ✨ Tell me about the pillars of Islam
+                    </button>
+                    <button class="suggestion-button" onclick="testClick('prayer')">
+                        ✨ How can I improve my prayer?
+                    </button>
+                    <button class="suggestion-button" onclick="testClick('patience')">
+                        ✨ Share wisdom about patience
+                    </button>
+                    <button class="suggestion-button" onclick="testClick('gratitude')">
+                        ✨ What does the Quran say about gratitude?
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin: 30px 0;">
+            <h3>🧪 Big Test Buttons (Should be very visible):</h3>
+            <button class="big-test" onclick="testClick('big1')">BIG RED BUTTON 1</button>
+            <button class="big-test" onclick="testClick('big2')">BIG RED BUTTON 2</button>
+        </div>
+        
+        <div id="result" style="margin-top: 20px; padding: 10px; background: rgba(0,255,0,0.1); border-radius: 8px;">
+            <strong>Click Results:</strong> None yet
+        </div>
+    </div>
+    
+    <script>
+        function testClick(buttonType) {
+            console.log('Button clicked:', buttonType);
+            document.getElementById('result').innerHTML = 
+                '<strong>✅ Click Results:</strong> ' + buttonType + ' button clicked at ' + new Date().toLocaleTimeString();
+        }
+        
+        // Auto test to see if buttons are rendered
+        window.onload = function() {
+            const buttons = document.querySelectorAll('.suggestion-button');
+            const bigButtons = document.querySelectorAll('.big-test');
+            console.log('Suggestion buttons found:', buttons.length);
+            console.log('Big test buttons found:', bigButtons.length);
+            
+            document.getElementById('result').innerHTML += 
+                '<br>📊 Buttons detected: ' + buttons.length + ' suggestion buttons, ' + bigButtons.length + ' test buttons';
+        }
+    </script>
+</body>
+</html>
