@@ -128,11 +128,14 @@ export function ChatProvider({
 
       const chatResponse: ChatResponse = data.data;
       
-      // Add AI response to chat
+      // Check if the assistant's response already contains a greeting
+      const greetingKeywords = ['As-salamu alaykum', 'Assalamu alaikum', 'salam'];
+      const containsGreeting = greetingKeywords.some(keyword => chatResponse.response.includes(keyword));
+
       const aiMessage: Message = {
         id: `assistant_${Date.now()}`,
         role: 'assistant',
-        content: chatResponse.response,
+        content: containsGreeting ? chatResponse.response : `As-salamu alaykum! ${chatResponse.response}`,
         timestamp: new Date()
       };
       
