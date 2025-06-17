@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DeepSeekAPI } from '@/lib/deepseek';
+import { ConversationContext } from '@/lib/conversation-analyzer';
+import { ContentUnlockResult } from '@/lib/content-unlock-engine';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -109,7 +111,7 @@ async function processContentUnlocking(
 ) {
   try {
     const unlocks: any[] = [];
-    const spiritualGuidance: any = {};
+    const spiritualGuidance: { quranReferences?: string[] } = {};
 
     // Dynamic unlocking logic
     const analysis = await analyzeMessageForUnlocking(message, conversationHistory);
@@ -269,10 +271,23 @@ async function analyzeMessageForUnlocking(
     // Attempt to perform conversation analysis
     let analysis;
     try {
-      analysis = analyzer.analyzeMessage(userMessage, chatHistory);
+      const context: ConversationContext = {
+        userId: 'dynamic-user',
+        sessionId: 'current-session',
+        topics: [],
+        spiritualThemes: [],
+        emotionalTone: 'neutral' as 'neutral',
+        knowledgeLevel: 'beginner',
+        engagementLevel: 5,
+        messageCount: conversationHistory.length + 1,
+        sessionDuration: 0,
+        lastInteraction: new Date(),
+        unlockTriggers: []
+      };
+
+      analysis = await analyzer.analyzeMessage(userMessage, context);
     } catch (analyzerError) {
       console.error('Error in conversation analyzer:', analyzerError);
-      // Create simple mock analysis if the analyzer fails
       analysis = createSimpleMockAnalysis(userMessage);
     }
     
@@ -292,11 +307,11 @@ async function analyzeMessageForUnlocking(
       sessionId: 'current-session',
       topics: analysisWithDefaults.topics,
       spiritualThemes: analysisWithDefaults.spiritualThemes,
-      emotionalTone: (Array.isArray(analysisWithDefaults.emotionalIndicators) && analysisWithDefaults.emotionalIndicators.includes('seeking')) ? 'seeking' : 
-                     (Array.isArray(analysisWithDefaults.emotionalIndicators) && analysisWithDefaults.emotionalIndicators.includes('troubled')) ? 'troubled' : 
-                     (Array.isArray(analysisWithDefaults.emotionalIndicators) && analysisWithDefaults.emotionalIndicators.includes('grateful')) ? 'grateful' : 'neutral',
-      knowledgeLevel: analysisWithDefaults.complexityScore > 7 ? 'advanced' : 
-                      analysisWithDefaults.complexityScore > 4 ? 'intermediate' : 'beginner',
+      emotionalTone: (Array.isArray(analysisWithDefaults.emotionalIndicators) && analysisWithDefaults.emotionalIndicators.includes('seeking')) ? 'seeking' as 'seeking' : 
+                     (Array.isArray(analysisWithDefaults.emotionalIndicators) && analysisWithDefaults.emotionalIndicators.includes('troubled')) ? 'troubled' as 'troubled' : 
+                     (Array.isArray(analysisWithDefaults.emotionalIndicators) && analysisWithDefaults.emotionalIndicators.includes('grateful')) ? 'grateful' as 'grateful' : 'neutral' as 'neutral',
+      knowledgeLevel: analysisWithDefaults.complexityScore > 7 ? 'advanced' as 'advanced' : 
+                      analysisWithDefaults.complexityScore > 4 ? 'intermediate' as 'intermediate' : 'beginner' as 'beginner',
       engagementLevel: analysisWithDefaults.engagementScore,
       messageCount: conversationHistory.length + 1,
       sessionDuration: 0,
@@ -305,12 +320,11 @@ async function analyzeMessageForUnlocking(
     };
     
     // Check for content unlocks (with error handling)
-    let contentResults = [];
+    let contentResults: ContentUnlockResult[] = [];
     try {
       contentResults = await unlockEngine.checkForUnlocks(
         'dynamic-user', 
-        context, 
-        conversationHistory.length + 1
+        context
       );
     } catch (unlockError) {
       console.error('Error checking for content unlocks:', unlockError);
@@ -322,7 +336,13 @@ async function analyzeMessageForUnlocking(
             id: 'patience-wisdom',
             content_type: 'wisdom_card',
             title: 'Patience in Hardship',
-            description: 'Understanding Sabr in Islamic teachings'
+            description: 'Understanding Sabr in Islamic teachings',
+            content_data: {},
+            unlock_conditions: {},
+            spiritual_themes: [],
+            islamic_topics: [],
+            difficulty_level: 1,
+            unlock_priority: 8,
           },
           reason: 'Topic detected in conversation',
           priority: 8,
@@ -365,7 +385,7 @@ async function analyzeMessageForUnlocking(
     
     // Fallback to simple keyword analysis
     const unlocks = [];
-    const spiritualGuidance = {};
+    const spiritualGuidance: { quranReferences?: string[] } = {};
     const topics = ['general'];
     let emotionalTone = 'neutral';
     const knowledgeLevel = 'beginner';
