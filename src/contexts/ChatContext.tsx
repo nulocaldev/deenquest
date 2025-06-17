@@ -9,6 +9,7 @@ export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
+  isLoading?: boolean; // Add optional isLoading property
 }
 
 export interface Suggestion {
@@ -48,33 +49,88 @@ export interface ChatProviderProps {
   initialMessages?: Message[];
 }
 
+// Load persisted state from localStorage
+const loadPersistedState = (userId: string = 'default'): {
+  messages: Message[];
+  suggestions: Suggestion[];
+  unlockedContent: UnlockedContent[];
+} => {
+  if (typeof window === 'undefined') return { messages: [], suggestions: [], unlockedContent: [] };
+  
+  try {
+    const stored = localStorage.getItem(`chat_state_${userId}`);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return {
+        messages: parsed.messages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        })),
+        suggestions: parsed.suggestions || [],
+        unlockedContent: parsed.unlockedContent.map((content: any) => ({
+          ...content,
+          unlockedAt: new Date(content.unlockedAt)
+        }))
+      };
+    }
+  } catch (error) {
+    console.error('Failed to load persisted chat state:', error);
+  }
+  return { messages: [], suggestions: [], unlockedContent: [] };
+};
+
+// Save state to localStorage
+const persistState = (state: Partial<ChatContextState>, userId: string = 'default') => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.setItem(`chat_state_${userId}`, JSON.stringify(state));
+  } catch (error) {
+    console.error('Failed to persist chat state:', error);
+  }
+};
+
 // Chat Provider component
 export function ChatProvider({ 
   children, 
   userId = `user_${Math.random().toString(36).substring(2, 9)}`,
   initialMessages = []
 }: ChatProviderProps) {
+  const persistedState = loadPersistedState(userId);
   const [messages, setMessages] = useState<Message[]>(
-    initialMessages.length > 0 ? initialMessages : [
-      {
-        id: 'welcome',
-        role: 'assistant',
-        content: 'As-salamu alaykum! I\'m here to help you with Islamic questions, provide guidance, and share wisdom from the Quran and Sunnah. What would you like to explore today?',
-        timestamp: new Date()
-      }
-    ]
+    initialMessages.length > 0 ? initialMessages : persistedState.messages
   );
-  
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([
-    { id: '1', text: 'Tell me about the pillars of Islam' },
-    { id: '2', text: 'How can I improve my prayer?' },
-    { id: '3', text: 'Share wisdom about patience' }
-  ]);
-  
-  const [unlockedContent, setUnlockedContent] = useState<UnlockedContent[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>(persistedState.suggestions);
+  const [unlockedContent, setUnlockedContent] = useState<UnlockedContent[]>(persistedState.unlockedContent);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enableUnlocking, setEnableUnlocking] = useState(true);
+
+  // Load chat history from localStorage on mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('chatHistory');
+    if (savedMessages) {
+      const parsedMessages = JSON.parse(savedMessages).map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp)
+      }));
+      setMessages(parsedMessages);
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('chatHistory', JSON.stringify(messages));
+  }, [messages]);
+
+  // Persist state changes
+  useEffect(() => {
+    persistState({
+      messages,
+      suggestions,
+      unlockedContent
+    }, userId);
+  }, [messages, suggestions, unlockedContent, userId]);
 
   // Convert our messages to the API format
   const formatMessagesForAPI = (): ChatMessage[] => {
@@ -101,69 +157,65 @@ export function ChatProvider({
     setIsLoading(true);
     setError(null);
 
+    // Show skeleton loader while waiting for response
+    setMessages(prevMessages => [
+      ...prevMessages,
+      {
+        id: `assistant_loading_${Date.now()}`,
+        role: 'assistant',
+        content: '...',
+        timestamp: new Date(),
+        isLoading: true
+      }
+    ]);
+
     try {
-      // Call the chat API
-      const response = await fetch('/api/v1/chat', {
+      const responseStream = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: messageText,
-          conversationHistory: formatMessagesForAPI(),
-          userId,
-          enableUnlocking
-        }),
+          message: userMessage,
+          conversationHistory: messages,
+          userId: userId,
+          enableUnlocking: true
+        })
       });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      const reader = responseStream.body?.getReader();
+      if (!reader) {
+        throw new Error('Failed to read response stream');
+      }
+      
+      const decoder = new TextDecoder();
+      let responseContent = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        responseContent += decoder.decode(value);
+        setMessages(prevMessages => {
+          const lastMessage = prevMessages[prevMessages.length - 1];
+          if (lastMessage.isLoading) {
+            return [
+              ...prevMessages.slice(0, -1),
+              { ...lastMessage, content: responseContent }
+            ];
+          }
+          return prevMessages;
+        });
       }
 
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error?.message || 'Unknown error occurred');
-      }
-
-      const chatResponse: ChatResponse = data.data;
-      
-      // Check if the assistant's response already contains a greeting
-      const greetingKeywords = ['As-salamu alaykum', 'Assalamu alaikum', 'salam'];
-      const containsGreeting = greetingKeywords.some(keyword => chatResponse.response.includes(keyword));
-
-      const aiMessage: Message = {
-        id: `assistant_${Date.now()}`,
-        role: 'assistant',
-        content: containsGreeting ? chatResponse.response : `As-salamu alaykum! ${chatResponse.response}`,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, aiMessage]);
-      
-      // Update suggestions
-      if (chatResponse.suggestions) {
-        setSuggestions(
-          chatResponse.suggestions.map((text, index) => ({
-            id: `suggestion_${Date.now()}_${index}`,
-            text
-          }))
-        );
-      }
-      
-      // Update unlocked content
-      if (chatResponse.unlocks && chatResponse.unlocks.length > 0) {
-        const newUnlocks = chatResponse.unlocks.map(unlock => ({
-          id: unlock.id,
-          type: unlock.type,
-          title: unlock.title,
-          description: unlock.description,
-          priority: unlock.priority,
-          unlockedAt: new Date(unlock.unlockedAt)
-        }));
-        
-        setUnlockedContent(prev => [...prev, ...newUnlocks]);
-      }
+      // Remove skeleton loader after response is complete
+      setMessages(prevMessages => {
+        const lastMessage = prevMessages[prevMessages.length - 1];
+        if (lastMessage.isLoading) {
+          return [
+            ...prevMessages.slice(0, -1),
+            { ...lastMessage, isLoading: false }
+          ];
+        }
+        return prevMessages;
+      });
     } catch (err) {
       console.error('Error sending message:', err);
       setError(err instanceof Error ? err.message : 'Failed to send message');

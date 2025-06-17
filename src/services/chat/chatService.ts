@@ -201,6 +201,22 @@ export class ChatService {
       wordCount: message.split(/\s+/).length,
     };
   }
+  
+  /**
+   * Stream chat response in chunks
+   */
+  async *streamChatResponse(request: ChatRequest): AsyncGenerator<string> {
+    const { message, context } = request;
+
+    // Simulate streaming by splitting the response into chunks
+    const fullResponse = await deepseekService.generateIslamicResponse(message, context);
+    const chunks = fullResponse.match(/.{1,50}/g) || [];
+
+    for (const chunk of chunks) {
+      yield chunk;
+      await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
+    }
+  }
 }
 
 // Export a singleton instance for convenience

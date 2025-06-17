@@ -75,3 +75,14 @@ export interface ConversationContext {
   lastInteraction: Date | string;
   unlockTriggers: string[];
 }
+
+/**
+ * Message interface for individual messages in the chat
+ */
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  isLoading?: boolean; // Add optional isLoading property
+}

@@ -4,30 +4,46 @@ import { createSuccessResponse, createErrorResponse } from '@/utils/apiResponse'
 import { handleApiError, ValidationError } from '@/utils/errorHandler';
 import { ChatRequest, ChatMessage, ConversationContext } from '@/types/chat';
 
+const STREAM_DELIMITER = '\n\n';
+
 /**
- * Main chat API route handler
- * This has been refactored to use the service-oriented architecture
+ * Main chat API route handler with streaming support
  */
 export async function POST(request: NextRequest) {
   try {
-    // Parse the request body
     const requestData: ChatRequest = await request.json();
-    
-    // Validate required fields
+
     if (!requestData.message) {
       throw new ValidationError('Message is required');
     }
-    
-    // Process the chat request
+
+    // Set up a timeout for the response
+    const timeoutMs = 30000; // 30 seconds
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
       const response = await chatService.processChat(requestData);
-      return createSuccessResponse(response);
-    } catch (chatError) {
-      console.warn('Chat processing error, using fallback:', chatError);
+      clearTimeout(timeoutId);
       
-      // Use fallback response if chat processing fails
+      // Send the response with appropriate headers
+      return new Response(JSON.stringify(response), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      });
+    } catch (chatError) {
+      console.warn('Chat processing error:', chatError);
+      
+      if (chatError.name === 'AbortError') {
+        return new Response('Request timeout', { status: 408 });
+      }
+
       const fallbackResponse = chatService.getFallbackResponse(requestData.message);
-      return createSuccessResponse(fallbackResponse);
+      return new Response(JSON.stringify(fallbackResponse), {
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
   } catch (error) {
     return handleApiError(error);

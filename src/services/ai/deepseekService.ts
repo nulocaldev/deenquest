@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getIslamicGuidancePrompt, getJournalPromptGeneratorPrompt } from './systemPrompts';
 
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const DEEPSEEK_API_URL = process.env.NEXT_PUBLIC_DEEPSEEK_API_URL || 'https://api.deepseek.com/v1/chat/completions';
 
 export interface DeepSeekMessage {
   role: 'system' | 'user' | 'assistant';
@@ -36,6 +36,7 @@ export class DeepSeekService {
   private timeout: number;
   private maxTokens: number;
   private temperature: number;
+  private retryCount: number;
 
   constructor(config: DeepSeekConfig = {}) {
     this.apiKey = config.apiKey || process.env.DEEPSEEK_API_KEY || '';
@@ -43,22 +44,52 @@ export class DeepSeekService {
     this.timeout = config.timeout || 30000;
     this.maxTokens = config.maxTokens || 1000;
     this.temperature = config.temperature || 0.7;
+    this.retryCount = 3;
   }
 
   /**
-   * Send a message to the DeepSeek AI model and get a response
+   * Send a message to the DeepSeek AI model with retry mechanism
    */
-  async chat(messages: DeepSeekMessage[], model: string = 'deepseek-chat'): Promise<string> {
-    if (!this.apiKey) {
-      console.warn('DeepSeek API key is missing, using fallback response');
-      return this.getFallbackResponse(messages[messages.length - 1]?.content || '');
+  async generateIslamicResponse(message: string, context?: string): Promise<string> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 0; attempt < this.retryCount; attempt++) {
+      try {
+        const response = await this.makeApiCall(message, context);
+        return response;
+      } catch (error) {
+        console.error(`API call attempt ${attempt + 1} failed:`, error);
+        lastError = error as Error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
+      }
     }
+    
+    throw new Error(`Failed to get AI response after ${this.retryCount} attempts. Last error: ${lastError?.message}`);
+  }
+
+  private async makeApiCall(message: string, context?: string): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('DeepSeek API key is not configured');
+    }
+
+    const systemMessage: DeepSeekMessage = {
+      role: 'system',
+      content: getIslamicGuidancePrompt(context)
+    };
+
+    const messages: DeepSeekMessage[] = [
+      systemMessage,
+      {
+        role: 'user',
+        content: message
+      }
+    ];
 
     try {
       const response = await axios.post<DeepSeekResponse>(
         this.baseURL,
         {
-          model,
+          model: 'deepseek-chat',
           messages,
           stream: false,
           temperature: this.temperature,
@@ -84,41 +115,20 @@ export class DeepSeekService {
       
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
-          console.warn('Invalid DeepSeek API key, using fallback response');
+          throw new Error('Invalid DeepSeek API key');
         } else if (error.response?.status === 429) {
-          console.warn('DeepSeek API rate limit exceeded, using fallback response');
+          throw new Error('DeepSeek API rate limit exceeded');
         } else if (error.response?.status === 500) {
-          console.warn('DeepSeek API server error, using fallback response');
+          throw new Error('DeepSeek API server error');
         } else if (error.code === 'ECONNABORTED') {
-          console.warn('DeepSeek API request timeout, using fallback response');
+          throw new Error('DeepSeek API request timeout');
         } else if (error.code === 'ECONNREFUSED') {
-          console.warn('Unable to connect to DeepSeek API, using fallback response');
+          throw new Error('Unable to connect to DeepSeek API');
         }
       }
       
-      console.warn('Failed to get response from DeepSeek API, using fallback response');
-      return this.getFallbackResponse(messages[messages.length - 1]?.content || '');
+      throw new Error('Failed to get response from DeepSeek API');
     }
-  }
-
-  /**
-   * Generate an Islamic response to a user message
-   */
-  async generateIslamicResponse(userMessage: string, context?: string): Promise<string> {
-    const systemMessage: DeepSeekMessage = {
-      role: 'system',
-      content: getIslamicGuidancePrompt(context)
-    };
-
-    const messages: DeepSeekMessage[] = [
-      systemMessage,
-      {
-        role: 'user',
-        content: userMessage
-      }
-    ];
-
-    return await this.chat(messages);
   }
 
   /**
