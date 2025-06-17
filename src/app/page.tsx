@@ -69,7 +69,7 @@ export default function ChatFirstHomepage() {
   const [currentSpiritualGuidance, setCurrentSpiritualGuidance] = useState<string | null>(null);
 
 
-  const [userStats] = useState<UserStats>({
+  const [userStats, setUserStats] = useState<UserStats>({
     hikmahPoints: 1247,
     cardsCollected: 89,
     journalStreak: 12,
@@ -177,13 +177,39 @@ export default function ChatFirstHomepage() {
       // Handle content unlocks
       if (data.unlocks && data.unlocks.length > 0) {
         setDashboardUnlockedItems(prev => [...prev, ...data.unlocks].slice(-5)); // Keep last 5 unlocks
-        // We'll add UI for this in the next step
+        
+        // If hikam points exist, increment them based on unlocks
+        if (userStats.hikmahPoints) {
+          const newPoints = userStats.hikmahPoints + (data.unlocks.length * 50);
+          setUserStats(prev => ({
+            ...prev,
+            hikmahPoints: newPoints
+          }));
+        }
       }
 
       // Handle spiritual guidance
       if (data.spiritualGuidance) {
-        setCurrentSpiritualGuidance(data.spiritualGuidance);
-        // We'll add UI for this in the next step, possibly by appending to the AI message or a separate display
+        // If spiritual guidance is an object with properties, convert to string
+        const guidanceText = typeof data.spiritualGuidance === 'string' 
+          ? data.spiritualGuidance
+          : Object.entries(data.spiritualGuidance)
+              .map(([key, value]) => {
+                // Format based on the type of content
+                if (key === 'quranReferences' && Array.isArray(value)) {
+                  return `Quranic Wisdom: ${value.join('. ')}`;
+                }
+                if (key === 'prayerReminders' && Array.isArray(value)) {
+                  return `Prayer Reminder: ${value.join('. ')}`;
+                }
+                if (key === 'duaaSuggestions' && Array.isArray(value)) {
+                  return `Recommended Duaa: ${value.join('. ')}`;
+                }
+                return `${value}`;
+              })
+              .join(' ');
+              
+        setCurrentSpiritualGuidance(guidanceText);
       }
 
       // Occasionally show native sponsor after AI response

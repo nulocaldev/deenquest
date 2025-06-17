@@ -35,18 +35,23 @@ export async function POST(request: NextRequest) {
       // Generate clean AI response
       const response = await deepseek.generateIslamicResponse(message, context);
       
-      // Base response
-      let chatResponse: any = {
-        response,
-        suggestions: [
-          "Tell me more about this topic",
-          "Can you provide a Quranic perspective?", 
-          "What would the Prophet (PBUH) say about this?"
-        ]
-      };
-
       // Enhanced content unlocking
       const unlockData = await processContentUnlocking(message, conversationHistory, userId);
+      
+      // Base response with personalized suggestions if analysis is available
+      let chatResponse: any = {
+        response,
+        suggestions: unlockData?.topics ? 
+          generatePersonalizedSuggestions(
+            unlockData.topics, 
+            unlockData.emotionalTone || 'neutral', 
+            unlockData.knowledgeLevel || 'beginner'
+          ) : [
+            "Tell me more about this topic",
+            "Can you provide a Quranic perspective?", 
+            "What would the Prophet (PBUH) say about this?"
+          ]
+      };
       if (unlockData) {
         chatResponse = {
           ...chatResponse,
@@ -60,26 +65,37 @@ export async function POST(request: NextRequest) {
     } catch (deepseekError) {
       console.warn('DeepSeek API failed, using fallback:', deepseekError);
       const fallbackResponse = getFallbackResponse(message);
+      
+      // Create simple analysis for fallback suggestions
+      const mockAnalysis = createSimpleMockAnalysis(message);
+      const fallbackSuggestions = generatePersonalizedSuggestions(
+        mockAnalysis.topics,
+        mockAnalysis.emotionalIndicators[0] || 'neutral',
+        mockAnalysis.complexityScore > 7 ? 'advanced' : 
+        mockAnalysis.complexityScore > 4 ? 'intermediate' : 'beginner'
+      );
+      
       return NextResponse.json({
         response: fallbackResponse,
-        suggestions: [
-          "Tell me more about this topic",
-          "Can you provide a Quranic perspective?",
-          "What would the Prophet (PBUH) say about this?",
-          "Share wisdom about patience"
-        ],
+        suggestions: fallbackSuggestions,
         isDeepSeek: false
       });
     }
   } catch (error) {
     console.error('Chat API Error:', error);
+    
+    // Create simple analysis for error suggestions
+    const mockAnalysis = createSimpleMockAnalysis(message || "general question");
+    const errorSuggestions = generatePersonalizedSuggestions(
+      mockAnalysis.topics,
+      mockAnalysis.emotionalIndicators[0] || 'neutral',
+      'beginner'
+    );
+    
     return NextResponse.json(
       { 
         response: "I'm having trouble right now. Please try again in a moment.",
-        suggestions: [
-          "Try asking again",
-          "Ask a different question"
-        ]
+        suggestions: errorSuggestions
       },
       { status: 500 }
     );
@@ -125,33 +141,263 @@ async function processContentUnlocking(
   }
 }
 
+// Create simple mock analysis when the conversation analyzer fails
+function createSimpleMockAnalysis(message: string) {
+  const lowerMessage = message.toLowerCase();
+  
+  // Extract potential topics
+  const topics = [];
+  
+  if (lowerMessage.includes('prayer') || lowerMessage.includes('salah')) topics.push('prayer');
+  if (lowerMessage.includes('patience') || lowerMessage.includes('sabr')) topics.push('patience');
+  if (lowerMessage.includes('quran') || lowerMessage.includes('verse')) topics.push('quran');
+  if (lowerMessage.includes('grateful') || lowerMessage.includes('thankful')) topics.push('gratitude');
+  if (lowerMessage.includes('forgive') || lowerMessage.includes('mercy')) topics.push('forgiveness');
+  
+  // If no specific topics detected
+  if (topics.length === 0) topics.push('general');
+  
+  // Detect potential emotional indicators
+  const emotionalIndicators = [];
+  
+  if (/\b(help|need|guide|advice|lost|confused)\b/.test(lowerMessage)) emotionalIndicators.push('seeking');
+  if (/\b(worry|difficult|hard|struggle|problem|stress|anxious)\b/.test(lowerMessage)) emotionalIndicators.push('troubled');
+  if (/\b(thank|grateful|blessed|appreciate|fortunate|happy)\b/.test(lowerMessage)) emotionalIndicators.push('grateful');
+  if (/\b(learn|understand|curious|interested|question)\b/.test(lowerMessage)) emotionalIndicators.push('curious');
+  
+  // Default emotional state if none detected
+  if (emotionalIndicators.length === 0) emotionalIndicators.push('neutral');
+  
+  // Map topics to spiritual themes
+  const spiritualThemes = [];
+  
+  if (topics.includes('prayer')) spiritualThemes.push('daily_practice');
+  if (topics.includes('patience')) spiritualThemes.push('trust_in_allah');
+  if (topics.includes('gratitude')) spiritualThemes.push('contentment');
+  
+  // Create basic analysis object
+  return {
+    topics,
+    spiritualThemes,
+    emotionalIndicators,
+    complexityScore: 5,
+    engagementScore: 7,
+    wordCount: message.split(/\s+/).length,
+    unlockTriggers: topics,
+    knowledgeIndicators: []
+  };
+}
+
+// Generate spiritual guidance based on topics and themes
+function generateSpiritualGuidance(
+  topics: string[] = [],
+  themes: string[] = [],
+  emotionalTone: string = 'neutral'
+): Record<string, string[]> {
+  const guidance: Record<string, string[]> = {};
+  
+  // Add Quranic references based on topics
+  if (Array.isArray(topics) && topics.includes('patience')) {
+    guidance.quranReferences = [
+      'And seek help through patience and prayer. Indeed, it is difficult except for the humbly submissive (Quran 2:45)',
+      'And be patient, for indeed, Allah does not allow to be lost the reward of those who do good (Quran 11:115)',
+    ];
+  }
+  
+  if (Array.isArray(topics) && topics.includes('gratitude')) {
+    guidance.quranReferences = [
+      'And [remember] when your Lord proclaimed, "If you are grateful, I will surely increase you [in favor]" (Quran 14:7)',
+      'So remember Me; I will remember you. And be grateful to Me and do not deny Me (Quran 2:152)'
+    ];
+  }
+  
+  if (Array.isArray(topics) && (topics.includes('prayer') || topics.includes('salah'))) {
+    guidance.prayerReminders = [
+      'Remember that prayer is the pillar of our faith and a direct connection to Allah',
+      'The Prophet (PBUH) said: "The comfort of my eyes lies in prayer"'
+    ];
+  }
+  
+  // Add dua suggestions based on emotional tone
+  if (emotionalTone === 'troubled') {
+    guidance.duaaSuggestions = [
+      'Rabbi inni massaniya ad-durru wa anta arhamur rahimeen (My Lord, indeed adversity has touched me, and You are the Most Merciful)',
+      'Hasbunallahu wa ni\'mal wakeel (Sufficient for us is Allah, and [He is] the best Disposer of affairs)'
+    ];
+  }
+  
+  if (emotionalTone === 'seeking') {
+    guidance.duaaSuggestions = [
+      'Rabbi zidni ilma (My Lord, increase me in knowledge)',
+      'Allahumma inni as\'aluka ilman nafi\'an (O Allah, I ask You for beneficial knowledge)'
+    ];
+  }
+  
+  if (emotionalTone === 'grateful') {
+    guidance.duaaSuggestions = [
+      'Alhamdulillahi Rabbil Alameen (All praise is due to Allah, Lord of the worlds)',
+      'Allahumma laka al-hamdu kama yanbaghi li-jalali wajhika wa li-azimi sultanika (O Allah, all praise is due to You as befits the glory of Your Face and the greatness of Your authority)'
+    ];
+  }
+  
+  // If no specific guidance was generated, provide general wisdom
+  if (Object.keys(guidance).length === 0) {
+    guidance.generalWisdom = [
+      'Remember that every moment is an opportunity to draw closer to Allah through remembrance and good deeds'
+    ];
+  }
+  
+  return guidance;
+}
+
 async function analyzeMessageForUnlocking(
   message: string,
   conversationHistory: ChatMessage[]
 ) {
-  // Placeholder for dynamic analysis logic
-  const unlocks = [];
-  const spiritualGuidance = {};
-  const topics = ['general'];
-  const emotionalTone = 'neutral';
-  const knowledgeLevel = 'beginner';
-
-  // Example: Analyze message and history for unlocking
-  if (message.toLowerCase().includes('patience')) {
-    unlocks.push({
-      id: 'patience-wisdom',
-      type: 'wisdom_card',
-      title: 'Patience in Hardship',
-      description: 'Understanding Sabr in Islamic teachings',
-      unlockedAt: new Date(),
-      priority: 'high'
-    });
-    spiritualGuidance.quranReferences = ['And give good tidings to the patient (Quran 2:155)'];
-    topics.push('patience');
-    emotionalTone = 'seeking';
+  try {
+    // Import the conversation analyzer and content unlock engine
+    const { ConversationAnalyzer } = await import('@/lib/conversation-analyzer');
+    const ContentUnlockEngine = await import('@/lib/content-unlock-engine').then(module => module.default);
+    
+    const analyzer = new ConversationAnalyzer();
+    const unlockEngine = new ContentUnlockEngine();
+    
+    // Extract message content for analysis
+    const userMessage = message.toLowerCase();
+    const chatHistory = conversationHistory.map(msg => msg.content).join(' ').toLowerCase();
+    
+    // Attempt to perform conversation analysis
+    let analysis;
+    try {
+      analysis = analyzer.analyzeMessage(userMessage, chatHistory);
+    } catch (analyzerError) {
+      console.error('Error in conversation analyzer:', analyzerError);
+      // Create simple mock analysis if the analyzer fails
+      analysis = createSimpleMockAnalysis(userMessage);
+    }
+    
+    // Define default values for analysis in case any properties are missing
+    const analysisWithDefaults = {
+      topics: analysis?.topics || ['general'],
+      spiritualThemes: analysis?.spiritualThemes || [],
+      emotionalIndicators: analysis?.emotionalIndicators || ['neutral'],
+      complexityScore: analysis?.complexityScore || 5,
+      engagementScore: analysis?.engagementScore || 5,
+      unlockTriggers: analysis?.unlockTriggers || []
+    };
+    
+    // Build conversation context
+    const context = {
+      userId: 'dynamic-user',
+      sessionId: 'current-session',
+      topics: analysisWithDefaults.topics,
+      spiritualThemes: analysisWithDefaults.spiritualThemes,
+      emotionalTone: (Array.isArray(analysisWithDefaults.emotionalIndicators) && analysisWithDefaults.emotionalIndicators.includes('seeking')) ? 'seeking' : 
+                     (Array.isArray(analysisWithDefaults.emotionalIndicators) && analysisWithDefaults.emotionalIndicators.includes('troubled')) ? 'troubled' : 
+                     (Array.isArray(analysisWithDefaults.emotionalIndicators) && analysisWithDefaults.emotionalIndicators.includes('grateful')) ? 'grateful' : 'neutral',
+      knowledgeLevel: analysisWithDefaults.complexityScore > 7 ? 'advanced' : 
+                      analysisWithDefaults.complexityScore > 4 ? 'intermediate' : 'beginner',
+      engagementLevel: analysisWithDefaults.engagementScore,
+      messageCount: conversationHistory.length + 1,
+      sessionDuration: 0,
+      lastInteraction: new Date(),
+      unlockTriggers: analysisWithDefaults.unlockTriggers
+    };
+    
+    // Check for content unlocks (with error handling)
+    let contentResults = [];
+    try {
+      contentResults = await unlockEngine.checkForUnlocks(
+        'dynamic-user', 
+        context, 
+        conversationHistory.length + 1
+      );
+    } catch (unlockError) {
+      console.error('Error checking for content unlocks:', unlockError);
+      // Create simple mock unlocks based on detected topics
+      if (context.topics.includes('patience')) {
+        contentResults = [{
+          unlocked: true,
+          content: {
+            id: 'patience-wisdom',
+            content_type: 'wisdom_card',
+            title: 'Patience in Hardship',
+            description: 'Understanding Sabr in Islamic teachings'
+          },
+          reason: 'Topic detected in conversation',
+          priority: 8,
+          recommendedTiming: 'immediate'
+        }];
+      }
+    }
+    
+    // Format the results (with fallback for empty or invalid results)
+    const unlocks = Array.isArray(contentResults) 
+      ? contentResults
+          .filter(result => result?.unlocked)
+          .map(result => ({
+            id: result.content?.id || 'unknown',
+            type: result.content?.content_type || 'wisdom_card',
+            title: result.content?.title || 'Islamic Wisdom',
+            description: result.content?.description || '',
+            unlockedAt: new Date(),
+            priority: result.priority > 8 ? 'high' : result.priority > 4 ? 'medium' : 'low',
+            details: result.reason
+          }))
+      : [];
+    
+    // Generate spiritual guidance based on context and unlocks
+    const spiritualGuidance = generateSpiritualGuidance(
+      analysisWithDefaults.topics || [], 
+      analysisWithDefaults.spiritualThemes || [],
+      context.emotionalTone || 'neutral'
+    );
+    
+    return { 
+      unlocks, 
+      spiritualGuidance, 
+      topics: analysis.topics, 
+      emotionalTone: context.emotionalTone,
+      knowledgeLevel: context.knowledgeLevel
+    };
+  } catch (error) {
+    console.error('Error in message analysis:', error);
+    
+    // Fallback to simple keyword analysis
+    const unlocks = [];
+    const spiritualGuidance = {};
+    const topics = ['general'];
+    let emotionalTone = 'neutral';
+    const knowledgeLevel = 'beginner';
+    
+    // Simplified keyword detection
+    if (message.toLowerCase().includes('patience') || message.toLowerCase().includes('sabr')) {
+      unlocks.push({
+        id: 'patience-wisdom',
+        type: 'wisdom_card',
+        title: 'Patience in Hardship',
+        description: 'Understanding Sabr in Islamic teachings',
+        unlockedAt: new Date(),
+        priority: 'high'
+      });
+      spiritualGuidance.quranReferences = ['And give good tidings to the patient (Quran 2:155)'];
+      topics.push('patience');
+      emotionalTone = 'seeking';
+    }
+    
+    if (message.toLowerCase().includes('prayer') || message.toLowerCase().includes('salah')) {
+      unlocks.push({
+        id: 'prayer-guide',
+        type: 'journal_prompt',
+        title: 'Prayer Reflection',
+        description: 'Deepen your connection through prayer',
+        unlockedAt: new Date(),
+        priority: 'medium'
+      });
+    }
+    
+    return { unlocks, spiritualGuidance, topics, emotionalTone, knowledgeLevel };
   }
-
-  return { unlocks, spiritualGuidance, topics, emotionalTone, knowledgeLevel };
 }
 
 function getFallbackResponse(userMessage: string): string {
@@ -163,4 +409,77 @@ function getFallbackResponse(userMessage: string): string {
   ];
   const responseIndex = Math.abs(userMessage.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % fallbackResponses.length;
   return fallbackResponses[responseIndex];
+}
+
+// Generate personalized follow-up suggestions based on conversation analysis
+function generatePersonalizedSuggestions(
+  topics: string[] = [], 
+  emotionalTone: string = 'neutral', 
+  knowledgeLevel: string = 'beginner'
+): string[] {
+  const suggestions: string[] = [];
+  
+  // Base suggestions that are always relevant
+  const baseSuggestions = [
+    "How can I learn more about this topic?",
+    "What does the Quran say about this?",
+    "Can you share a hadith related to this?"
+  ];
+  
+  // Add topic-specific suggestions
+  if (Array.isArray(topics) && (topics.includes('prayer') || topics.includes('salah'))) {
+    suggestions.push("How can I improve my khushoo in prayer?");
+    suggestions.push("What are common mistakes people make in salah?");
+    if (knowledgeLevel === 'beginner') {
+      suggestions.push("Can you explain the steps of wudu?");
+    } else {
+      suggestions.push("What are some sunnah prayers I can add to my routine?");
+    }
+  }
+  
+  if (Array.isArray(topics) && (topics.includes('patience') || topics.includes('sabr'))) {
+    suggestions.push("Share a story about the Prophet's patience");
+    suggestions.push("What duas can I recite when facing hardship?");
+    if (emotionalTone === 'troubled') {
+      suggestions.push("How can faith help me through difficult times?");
+    }
+  }
+  
+  if (Array.isArray(topics) && topics.includes('quran')) {
+    suggestions.push("Which surah is recommended for daily recitation?");
+    if (knowledgeLevel === 'advanced') {
+      suggestions.push("Can you explain the concept of Asbab al-Nuzul?");
+    } else {
+      suggestions.push("What are some easy surahs to memorize?");
+    }
+  }
+  
+  if (Array.isArray(topics) && (topics.includes('gratitude') || topics.includes('shukr'))) {
+    suggestions.push("How can I practice gratitude daily?");
+    suggestions.push("What are the benefits of being grateful in Islam?");
+  }
+  
+  // Add emotional tone-specific suggestions
+  if (emotionalTone === 'seeking') {
+    suggestions.push("I want to strengthen my faith, where should I start?");
+    suggestions.push("How can I feel closer to Allah?");
+  }
+  
+  if (emotionalTone === 'troubled') {
+    suggestions.push("What does Islam teach about overcoming anxiety?");
+    suggestions.push("How can I find peace in difficult times?");
+  }
+  
+  if (emotionalTone === 'grateful') {
+    suggestions.push("What are the best ways to express gratitude to Allah?");
+    suggestions.push("How can I give back to others as a form of thankfulness?");
+  }
+  
+  // If we have enough suggestions, return a subset; otherwise add base suggestions
+  if (suggestions.length >= 3) {
+    return suggestions.slice(0, 3); // Return up to 3 personalized suggestions
+  } else {
+    // Add base suggestions to fill up to 3 total
+    return [...suggestions, ...baseSuggestions].slice(0, 3);
+  }
 }
