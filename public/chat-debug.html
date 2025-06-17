@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Debug Mirror</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .debug-section {
+            background: #333;
+            border: 2px solid #666;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .suggestion-btn {
+            background: rgba(59, 130, 246, 0.8);
+            color: white;
+            border: 2px solid yellow;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .suggestion-btn:hover {
+            background: rgba(59, 130, 246, 1);
+            transform: scale(1.05);
+        }
+        .status {
+            background: green;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="status">
+        🟢 CHAT DEBUG MIRROR - Testing exact same setup as chat page
+    </div>
+    
+    <div class="debug-section">
+        <h2>📊 API Test Results</h2>
+        <button onclick="testAPI()" style="background: orange; color: black; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+            🧪 Test Chat API
+        </button>
+        <div id="api-result" style="margin-top: 10px; padding: 10px; background: #222; border-radius: 5px;">
+            Click button above to test API...
+        </div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🤖 Simulated AI Message with Suggestions</h2>
+        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; margin: 10px 0;">
+            <strong>AI:</strong> As-salamu alaykum! I'm your Hikmah AI assistant. How can I assist you today?
+        </div>
+        
+        <div style="margin-left: 44px; margin-top: 12px; border: 3px solid red; padding: 15px; background: rgba(255,0,0,0.1);">
+            <div style="color: yellow; font-size: 14px; font-weight: bold; margin-bottom: 10px;">
+                🎯 CLICKABLE SUGGESTIONS (4 found):
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <button class="suggestion-btn" onclick="suggestionClick('pillars')">
+                    ✨ Tell me about the pillars of Islam
+                </button>
+                <button class="suggestion-btn" onclick="suggestionClick('prayer')">
+                    ✨ How can I improve my prayer?
+                </button>
+                <button class="suggestion-btn" onclick="suggestionClick('patience')">
+                    ✨ Share wisdom about patience
+                </button>
+                <button class="suggestion-btn" onclick="suggestionClick('gratitude')">
+                    ✨ What does the Quran say about gratitude?
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🔍 Click Results</h2>
+        <div id="click-results" style="background: #222; padding: 10px; border-radius: 5px; min-height: 50px;">
+            No clicks yet...
+        </div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>📋 Troubleshooting Checklist</h2>
+        <ul>
+            <li>✅ Can you see this page clearly?</li>
+            <li>✅ Can you see the red-bordered suggestion area above?</li>
+            <li>✅ Can you see 4 blue suggestion buttons with yellow borders?</li>
+            <li>✅ Do the buttons respond when you click them?</li>
+            <li>✅ Does the API test button work?</li>
+        </ul>
+        <p><strong>If YES to all:</strong> The issue is browser-specific or caching related.</p>
+        <p><strong>If NO to any:</strong> There's a fundamental display or JavaScript issue.</p>
+    </div>
+    
+    <script>
+        function suggestionClick(type) {
+            console.log('Suggestion clicked:', type);
+            const results = document.getElementById('click-results');
+            results.innerHTML += '<div>✅ ' + new Date().toLocaleTimeString() + ' - Clicked: ' + type + '</div>';
+        }
+        
+        async function testAPI() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.innerHTML = '🔄 Testing API...';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: 'Test message from debug page',
+                        context: 'Islamic guidance'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div><strong>✅ API Response:</strong></div>
+                    <div><strong>Response:</strong> ${data.response.substring(0, 100)}...</div>
+                    <div><strong>Suggestions:</strong> ${data.suggestions ? data.suggestions.length : 0} found</div>
+                    <div><strong>Sample suggestions:</strong> ${data.suggestions ? data.suggestions.slice(0, 2).join(', ') : 'None'}</div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = '❌ API Error: ' + error.message;
+            }
+        }
+        
+        // Auto-run basic checks
+        window.onload = function() {
+            console.log('Debug page loaded');
+            const buttons = document.querySelectorAll('.suggestion-btn');
+            console.log('Suggestion buttons found:', buttons.length);
+            
+            setTimeout(() => {
+                testAPI();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

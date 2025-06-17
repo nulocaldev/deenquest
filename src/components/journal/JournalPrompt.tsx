@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import {
 } from "../ui/card";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { AlertCircle, CheckCircle, Send } from "lucide-react";
+import { AlertCircle, CheckCircle, Send, RefreshCw, Sparkles } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 interface JournalPromptProps {
@@ -19,20 +19,54 @@ interface JournalPromptProps {
   onSubmit?: (
     reflection: string,
   ) => Promise<{ feedback: string; success: boolean }>;
+  onPromptGenerated?: (prompt: string) => void;
 }
 
 const JournalPrompt = ({
-  prompt = "Reflect on how the wisdom from your recent Hikmah card about patience can be applied in your daily life.",
+  prompt: initialPrompt,
   onSubmit = async () => ({
     feedback:
-      "Your reflection shows thoughtful consideration of how patience can transform everyday challenges into opportunities for spiritual growth.",
+      "Your reflection shows thoughtful consideration and spiritual growth. May Allah guide you on your journey.",
     success: true,
   }),
+  onPromptGenerated,
 }: JournalPromptProps) => {
+  const [prompt, setPrompt] = useState(initialPrompt || "");
   const [reflection, setReflection] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
+  const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
+
+  // Fetch a new prompt if none is provided
+  useEffect(() => {
+    if (!initialPrompt) {
+      fetchNewPrompt();
+    }
+  }, [initialPrompt]);
+
+  const fetchNewPrompt = async () => {
+    setIsLoadingPrompt(true);
+    try {
+      const response = await fetch('/api/journal/prompt', {
+        method: 'GET',
+      });
+      const data = await response.json();
+      
+      if (data.prompt) {
+        setPrompt(data.prompt);
+        onPromptGenerated?.(data.prompt);
+      }
+    } catch (error) {
+      console.error('Error fetching prompt:', error);
+      // Use fallback prompt
+      const fallbackPrompt = "Reflect on your spiritual journey today. What moments brought you closer to Allah? How can you continue to grow in your faith and practice?";
+      setPrompt(fallbackPrompt);
+      onPromptGenerated?.(fallbackPrompt);
+    } finally {
+      setIsLoadingPrompt(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!reflection.trim()) return;
@@ -61,16 +95,37 @@ const JournalPrompt = ({
   return (
     <Card className="w-full max-w-2xl mx-auto bg-card">
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">
-          Daily Reflection
-        </CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Take a moment to reflect on today's prompt and write your thoughts.
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-aurora-cyan" />
+              Daily Reflection
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Take a moment to reflect on today's prompt and write your thoughts.
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchNewPrompt}
+            disabled={isLoadingPrompt || isSubmitting}
+            className="shrink-0"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoadingPrompt ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="bg-muted p-4 rounded-md">
-          <p className="italic">{prompt}</p>
+          {isLoadingPrompt ? (
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Generating thoughtful prompt...</span>
+            </div>
+          ) : (
+            <p className="italic">{prompt}</p>
+          )}
         </div>
 
         <Textarea
@@ -78,7 +133,7 @@ const JournalPrompt = ({
           className="min-h-[200px] resize-none"
           value={reflection}
           onChange={(e) => setReflection(e.target.value)}
-          disabled={isSubmitting || feedback !== null}
+          disabled={isSubmitting || feedback !== null || isLoadingPrompt}
         />
 
         {feedback && (

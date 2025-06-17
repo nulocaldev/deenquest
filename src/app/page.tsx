@@ -1,262 +1,509 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, MessageCircle, Trophy, User } from "lucide-react";
-import HikmahCard from "@/components/hikmah/HikmahCard";
+import { 
+  Send, 
+  Bot, 
+  User, 
+  BookOpen, 
+  Target, 
+  Users, 
+  Star,
+  Calendar,
+  TrendingUp,
+  Award,
+  MessageCircle,
+  PenTool,
+  Gamepad2,
+  UserCircle
+} from "lucide-react";
+import { useClientTime, formatTime } from "@/hooks/useClientTime";
+import { NativeSponsor } from "@/components/NativeSponsor";
 
-export default function Home() {
+interface Message {
+  id: string;
+  content: string;
+  sender: "user" | "ai";
+  timestamp: Date;
+  type?: "welcome" | "wisdom" | "achievement" | "native_sponsor";
+}
+
+interface QuickAction {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  path: string;
+  description: string;
+}
+
+interface UserStats {
+  hikmahPoints: number;
+  cardsCollected: number;
+  journalStreak: number;
+  communityRank: string;
+  userId: string; // Added for consistent user ID
+}
+
+export default function ChatFirstHomepage() {
+  const isClient = useClientTime();
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "welcome",
+      content: "As-salamu alaykum! Welcome to DeenQuest, your AI-powered Islamic companion. I'm here to help you grow in wisdom, track your spiritual journey, and connect with the community. How can I assist you today?",
+      sender: "ai",
+      timestamp: new Date(Date.now() - 60000),
+      type: "welcome"
+    }
+  ]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [dashboardUnlockedItems, setDashboardUnlockedItems] = useState<any[]>([]);
+  const [currentSpiritualGuidance, setCurrentSpiritualGuidance] = useState<string | null>(null);
+
+
+  const [userStats, setUserStats] = useState<UserStats>({
+    hikmahPoints: 1247,
+    cardsCollected: 89,
+    journalStreak: 12,
+    communityRank: "Seeker",
+    userId: `deenquest_user_${Math.random().toString(36).substr(2, 9)}` // Generate a basic unique ID
+  });
+
+  const quickActions: QuickAction[] = [
+    {
+      id: "cards",
+      label: "Hikmah Cards",
+      icon: <BookOpen className="h-4 w-4" />,
+      path: "/cards",
+      description: "Collect wisdom cards"
+    },
+    {
+      id: "journal",
+      label: "Journal",
+      icon: <PenTool className="h-4 w-4" />,
+      path: "/journal",
+      description: "Reflect and grow"
+    },
+    {
+      id: "games",
+      label: "Games",
+      icon: <Gamepad2 className="h-4 w-4" />,
+      path: "/games",
+      description: "Learn through play"
+    },
+    {
+      id: "profile",
+      label: "Profile",
+      icon: <UserCircle className="h-4 w-4" />,
+      path: "/profile",
+      description: "Track your progress"
+    }
+  ];
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector(
+        "[data-radix-scroll-area-viewport]",
+      );
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (inputValue.trim() === "" || isLoading) return;
+
+    const newUserMessage: Message = {
+      id: Date.now().toString(),
+      content: inputValue,
+      sender: "user",
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, newUserMessage]);
+    const currentMessage = inputValue;
+    setInputValue("");
+    setIsLoading(true);
+    setCurrentSpiritualGuidance(null); // Clear previous guidance
+
+    // Add typing indicator
+    const typingMessage: Message = {
+      id: "typing",
+      content: "Hikmah AI is thinking...",
+      sender: "ai",
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, typingMessage]);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          message: currentMessage,
+          context: messages.slice(-5).map(m => `${m.sender === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n'), // Enhanced context
+          userId: userStats.userId, // Pass user ID
+          enableUnlocking: true // Always enable advanced features
+        }),
+      });
+
+      const data = await response.json();
+      
+      // Remove typing indicator and add actual response
+      setMessages(prev => {
+        const withoutTyping = prev.filter(msg => msg.id !== "typing");
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          content: data.response,
+          sender: "ai",
+          timestamp: new Date(),
+          type: "wisdom"
+        };
+        return [...withoutTyping, aiResponse];
+      });
+
+      // Handle content unlocks
+      if (data.unlocks && data.unlocks.length > 0) {
+        setDashboardUnlockedItems(prev => [...prev, ...data.unlocks].slice(-5)); // Keep last 5 unlocks
+        
+        // If hikam points exist, increment them based on unlocks
+        if (userStats.hikmahPoints) {
+          const newPoints = userStats.hikmahPoints + (data.unlocks.length * 50);
+          setUserStats(prev => ({
+            ...prev,
+            hikmahPoints: newPoints
+          }));
+        }
+      }
+
+      // Handle spiritual guidance
+      if (data.spiritualGuidance) {
+        // If spiritual guidance is an object with properties, convert to string
+        const guidanceText = typeof data.spiritualGuidance === 'string' 
+          ? data.spiritualGuidance
+          : Object.entries(data.spiritualGuidance)
+              .map(([key, value]) => {
+                // Format based on the type of content
+                if (key === 'quranReferences' && Array.isArray(value)) {
+                  return `Quranic Wisdom: ${value.join('. ')}`;
+                }
+                if (key === 'prayerReminders' && Array.isArray(value)) {
+                  return `Prayer Reminder: ${value.join('. ')}`;
+                }
+                if (key === 'duaaSuggestions' && Array.isArray(value)) {
+                  return `Recommended Duaa: ${value.join('. ')}`;
+                }
+                return `${value}`;
+              })
+              .join(' ');
+              
+        setCurrentSpiritualGuidance(guidanceText);
+      }
+
+      // Occasionally show native sponsor after AI response
+      if (Math.random() > 0.7) {
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            id: `native_sponsor-${Date.now()}`,
+            content: "native_sponsor",
+            sender: "ai",
+            timestamp: new Date(),
+            type: "native_sponsor"
+          }]);
+        }, 1000);
+      }
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => {
+        const withoutTyping = prev.filter(msg => msg.id !== "typing");
+        const errorResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment. May Allah guide you in your quest for knowledge.",
+          sender: "ai",
+          timestamp: new Date(),
+        };
+        return [...withoutTyping, errorResponse];
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleQuickAction = (action: QuickAction) => {
+    const quickMessage: Message = {
+      id: Date.now().toString(),
+      content: `Show me ${action.label.toLowerCase()}`,
+      sender: "user",
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, quickMessage]);
+    
+    // Simulate AI response suggesting navigation
+    setTimeout(() => {
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: `Great choice! ${action.description}. You can explore ${action.label} to continue your journey. Would you like me to guide you there?`,
+        sender: "ai",
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, aiResponse]);
+    }, 500);
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen pastel-bg-primary">
       {/* Header */}
-      <header className="sticky top-0 z-10 w-full border-b bg-background/95 backdrop-blur">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">DeenQuest</h1>
-          </div>
-
+      <header className="frosted-header sticky top-0 z-50 w-full">
+        <div className="container flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <Badge
-              variant="secondary"
-              className="flex gap-1 items-center px-3 py-1"
-            >
-              <Trophy className="h-4 w-4" />
-              <span>1,250 Points</span>
+            <h1 className="text-2xl font-bold text-frosted-strong">
+              DeenQuest
+            </h1>
+            <Badge className="bg-gradient-to-r from-pastel-mint to-pastel-blue text-frosted-strong border-0">
+              {userStats.communityRank}
             </Badge>
-
-            <Avatar>
-              <AvatarImage
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=user123"
-                alt="User"
-              />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-6 text-sm text-frosted">
+              <div className="flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                <span>{userStats.hikmahPoints}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                <span>{userStats.cardsCollected}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>{userStats.journalStreak} days</span>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container py-6 space-y-8">
-        {/* Featured Hikmah Card */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Hikmah of the Day</h2>
-            <Button variant="outline" size="sm">
-              View All Cards
-            </Button>
-          </div>
-
-          <div className="flex justify-center">
-            <HikmahCard
-              title="Patience is a Virtue"
-              content="Indeed, Allah is with the patient."
-              source="Quran 2:153"
-              rarity="rare"
-              points={50}
-              onClick={() => console.log("Hikmah card clicked")}
-            />
-          </div>
-        </section>
-
-        {/* Quick Access Features */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold">Features</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-card hover:bg-accent/10 transition-colors cursor-pointer">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  Hikmah Cards
+      <main className="container py-6 space-y-6 px-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Chat Interface - Primary Column */}
+          <div className="lg:col-span-2">
+            <Card className="frosted-card h-[600px] flex flex-col">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-frosted-strong text-xl flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  Chat with Hikmah AI
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Collect and explore Islamic wisdom cards
-                </CardDescription>
-              </CardContent>
-              <CardFooter>
-                <Badge variant="outline">10 New Cards</Badge>
-              </CardFooter>
-            </Card>
 
-            <Card className="bg-card hover:bg-accent/10 transition-colors cursor-pointer">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  Journal
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Reflect on Islamic teachings with AI guidance
-                </CardDescription>
-              </CardContent>
-              <CardFooter>
-                <Badge variant="outline">Daily Prompt Ready</Badge>
-              </CardFooter>
-            </Card>
-
-            <Card className="bg-card hover:bg-accent/10 transition-colors cursor-pointer">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-primary" />
-                  Games
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Play Islamic knowledge games and earn points
-                </CardDescription>
-              </CardContent>
-              <CardFooter>
-                <Badge variant="outline">3 Games Available</Badge>
-              </CardFooter>
-            </Card>
-
-            <Card className="bg-card hover:bg-accent/10 transition-colors cursor-pointer">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5 text-primary" />
-                  Hikmah Chat
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Ask questions and get Islamic guidance
-                </CardDescription>
-              </CardContent>
-              <CardFooter>
-                <Badge variant="outline">AI Assistant</Badge>
-              </CardFooter>
-            </Card>
-          </div>
-        </section>
-
-        {/* User Progress */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold">Your Progress</h2>
-
-          <Tabs defaultValue="stats" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="stats">Stats</TabsTrigger>
-              <TabsTrigger value="achievements">Achievements</TabsTrigger>
-              <TabsTrigger value="recent">Recent Activity</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="stats" className="space-y-4 pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Cards Collected
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">24/100</p>
-                    <progress
-                      className="w-full h-2 mt-2"
-                      value="24"
-                      max="100"
-                    ></progress>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Journal Entries
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">12</p>
-                    <p className="text-xs text-muted-foreground">
-                      Last entry: 2 days ago
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Learning Streak
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">7 Days</p>
-                    <p className="text-xs text-muted-foreground">Keep it up!</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="achievements" className="pt-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { name: "First Card", completed: true },
-                  { name: "5-Day Streak", completed: true },
-                  { name: "Journal Master", completed: false },
-                  { name: "Game Champion", completed: false },
-                ].map((achievement, index) => (
-                  <Card
-                    key={index}
-                    className={!achievement.completed ? "opacity-50" : ""}
-                  >
-                    <CardHeader className="pb-2 text-center">
-                      <div className="mx-auto bg-primary/10 p-2 rounded-full w-12 h-12 flex items-center justify-center mb-2">
-                        <Trophy
-                          className={`h-6 w-6 ${achievement.completed ? "text-primary" : "text-muted-foreground"}`}
+              <ScrollArea ref={scrollAreaRef} className="flex-1 px-6">
+                <div className="space-y-4 pb-4">
+                  {messages.map((message) => (
+                    <div key={message.id}>
+                      {message.type === "native_sponsor" ? (
+                        <NativeSponsor 
+                          context="chat"
+                          integrationType="suggestion"
+                          className="my-4"
                         />
-                      </div>
-                      <CardTitle className="text-sm">
-                        {achievement.name}
-                      </CardTitle>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
+                      ) : (
+                        <div
+                          className={`flex gap-3 ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                        >
+                          {message.sender === "ai" && (
+                            <Avatar className="h-8 w-8 shrink-0">
+                              <AvatarFallback className="bg-gradient-to-br from-pastel-mint to-pastel-blue">
+                                <Bot size={16} className="text-frosted-strong" />
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
 
-            <TabsContent value="recent" className="pt-4">
-              <div className="space-y-4">
-                {[
-                  {
-                    action: "Collected a new Hikmah Card",
-                    time: "Today, 10:23 AM",
-                  },
-                  {
-                    action: "Completed a Journal Entry",
-                    time: "Yesterday, 8:45 PM",
-                  },
-                  { action: "Won Memory Match Game", time: "2 days ago" },
-                ].map((activity, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between border-b pb-2"
+                          <div className={`space-y-2 max-w-[80%] ${message.sender === "user" ? "items-end" : "items-start"} flex flex-col`}>
+                            <div
+                              className={`rounded-lg p-3 ${
+                                message.sender === "user"
+                                  ? "chat-message-user"
+                                  : "chat-message-ai"
+                              }`}
+                            >
+                              {message.content}
+                              {/* Display spiritual guidance with the AI message if it's the last AI message and guidance exists */}
+                              {message.sender === 'ai' && messages[messages.length -1].id === message.id && currentSpiritualGuidance && (
+                                <div className="mt-2 pt-2 border-t border-white/30">
+                                  <p className="text-xs italic text-frosted-light/90">✨ Spiritual Reflection: {currentSpiritualGuidance}</p>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="text-xs text-frosted-light">
+                              {formatTime(message.timestamp, isClient)}
+                            </div>
+                          </div>
+
+                          {message.sender === "user" && (
+                            <Avatar className="h-8 w-8 shrink-0">
+                              <AvatarFallback className="bg-gradient-to-br from-pastel-pink to-pastel-lavender">
+                                <User size={16} className="text-frosted-strong" />
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+
+              <div className="p-6 pt-4 border-t border-white/20">
+                <div className="flex gap-2">
+                  <Input
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder="Ask me anything about Islam, set goals, or explore DeenQuest..."
+                    className="frosted-input flex-1"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    onClick={() => handleSendMessage()}
+                    disabled={inputValue.trim() === "" || isLoading}
+                    className="frosted-button px-4"
                   >
-                    <p>{activity.action}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {activity.time}
-                    </p>
+                    <Send size={18} />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            
+            {/* Quick Actions */}
+            <Card className="frosted-card">
+              <CardHeader>
+                <CardTitle className="text-frosted-strong text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {quickActions.map((action) => (
+                  <div key={action.id} className="flex gap-3">
+                    <Button
+                      onClick={() => handleQuickAction(action)}
+                      className="frosted-button flex-1 justify-start gap-3 h-auto py-3"
+                      asChild
+                    >
+                      <Link href={action.path}>
+                        {action.icon}
+                        <div className="text-left">
+                          <div className="font-medium">{action.label}</div>
+                          <div className="text-xs text-frosted-light">{action.description}</div>
+                        </div>
+                      </Link>
+                    </Button>
                   </div>
                 ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </section>
+              </CardContent>
+            </Card>
+
+            {/* Recently Unlocked Wisdom */}
+            <Card className="frosted-card">
+              <CardHeader>
+                <CardTitle className="text-frosted-strong text-lg flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-400" />
+                  Recently Unlocked Wisdom
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {dashboardUnlockedItems.length === 0 && (
+                  <p className="text-sm text-frosted-light">No wisdom unlocked yet. Keep chatting to discover more!</p>
+                )}
+                {dashboardUnlockedItems.map((item, index) => (
+                  <div key={index} className="p-2 bg-white/10 rounded-md text-sm text-frosted">
+                    <span className="font-semibold">{item.type}:</span> {item.title}
+                    {item.details && <p className="text-xs text-frosted-light/80">{item.details}</p>}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Progress Overview */}
+            <Card className="frosted-card">
+              <CardHeader>
+                <CardTitle className="text-frosted-strong text-lg flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Your Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-frosted">Hikmah Points</span>
+                  <span className="text-frosted-strong font-bold">{userStats.hikmahPoints}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-frosted">Cards Collected</span>
+                  <span className="text-frosted-strong font-bold">{userStats.cardsCollected}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-frosted">Journal Streak</span>
+                  <span className="text-frosted-strong font-bold">{userStats.journalStreak} days</span>
+                </div>
+                <div className="pt-2 border-t border-white/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-frosted">Community Rank</span>
+                    <Badge className="bg-gradient-to-r from-pastel-peach to-pastel-yellow text-frosted-strong border-0">
+                      <Award className="h-3 w-3 mr-1" />
+                      {userStats.communityRank}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Today's Goals */}
+            <Card className="frosted-card">
+              <CardHeader>
+                <CardTitle className="text-frosted-strong text-lg flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Today's Goals
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-pastel-mint to-pastel-blue"></div>
+                  <span className="text-frosted text-sm">Complete daily reflection</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-pastel-pink to-pastel-lavender"></div>
+                  <span className="text-frosted text-sm">Collect 3 Hikmah cards</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-pastel-peach to-pastel-yellow"></div>
+                  <span className="text-frosted text-sm">Connect with community</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </main>
     </div>
   );

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Suggestions Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .suggestion {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 16px;
+            background: rgba(59, 130, 246, 0.2);
+            color: rgb(59, 130, 246);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .suggestion:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+        .message {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+            margin: 10px 0;
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Chat Suggestions Test</h1>
+    <p>This page tests the suggestion styling and functionality similar to the chat interface.</p>
+    
+    <div class="message">
+        <strong>AI:</strong> As-salamu alaykum! I'm your Hikmah AI assistant. How can I assist you today?
+        <div style="margin-top: 10px;">
+            <button class="suggestion" onclick="testSuggestion('Tell me about the pillars of Islam')">
+                ✨ Tell me about the pillars of Islam
+            </button>
+            <button class="suggestion" onclick="testSuggestion('How can I improve my prayer?')">
+                ✨ How can I improve my prayer?
+            </button>
+            <button class="suggestion" onclick="testSuggestion('Share wisdom about patience')">
+                ✨ Share wisdom about patience
+            </button>
+            <button class="suggestion" onclick="testSuggestion('What does the Quran say about gratitude?')">
+                ✨ What does the Quran say about gratitude?
+            </button>
+        </div>
+    </div>
+    
+    <button class="test-button" onclick="testChatAPI()">Test Chat API</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        function testSuggestion(text) {
+            console.log('Suggestion clicked:', text);
+            alert('Suggestion clicked: ' + text);
+            document.getElementById('result').innerHTML = '<div class="message"><strong>You:</strong> ' + text + '</div>';
+        }
+        
+        async function testChatAPI() {
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: 'Test message',
+                        context: 'Islamic guidance'
+                    })
+                });
+                const data = await response.json();
+                console.log('API Response:', data);
+                
+                let html = '<div class="message"><strong>AI:</strong> ' + data.response + '<div style="margin-top: 10px;">';
+                if (data.suggestions) {
+                    data.suggestions.forEach(suggestion => {
+                        html += '<button class="suggestion" onclick="testSuggestion(\'' + suggestion + '\')">✨ ' + suggestion + '</button>';
+                    });
+                }
+                html += '</div></div>';
+                
+                document.getElementById('result').innerHTML = html;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = '<div style="color: red;">Error: ' + error.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>

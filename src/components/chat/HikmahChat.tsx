@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { useClientTime, formatTime } from "@/hooks/useClientTime";
 
 interface Message {
   id: string;
@@ -61,6 +62,7 @@ export default function HikmahChat({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const isClient = useClientTime();
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function HikmahChat({
     }
   }, [messages]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = React.useCallback(async () => {
     if (inputValue.trim() === "") return;
 
     const newUserMessage: Message = {
@@ -84,39 +86,80 @@ export default function HikmahChat({
       timestamp: new Date(),
     };
 
-    setMessages([...messages, newUserMessage]);
+    setMessages(prev => [...prev, newUserMessage]);
     onSendMessage(inputValue);
+    const currentMessage = inputValue;
     setInputValue("");
 
-    // Simulate AI response (in a real app, this would come from your backend)
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content:
-          "Thank you for your question. In Islamic teachings, seeking knowledge is highly encouraged. The Prophet Muhammad (peace be upon him) said: 'Seeking knowledge is obligatory upon every Muslim.'",
-        sender: "ai",
-        timestamp: new Date(),
-        attachedCard: {
-          id: "card123",
-          title: "Importance of Knowledge",
-          rarity: "uncommon",
+    // Add typing indicator
+    const typingMessage: Message = {
+      id: "typing",
+      content: "Hikmah AI is thinking...",
+      sender: "ai",
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, typingMessage]);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      };
+        body: JSON.stringify({ 
+          message: currentMessage,
+          context: messages.slice(-3).map(m => `${m.sender}: ${m.content}`).join('\n')
+        }),
+      });
 
-      setMessages((prev) => [...prev, aiResponse]);
-    }, 1000);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+      const data = await response.json();
+      
+      // Remove typing indicator and add actual response
+      setMessages(prev => {
+        const withoutTyping = prev.filter(msg => msg.id !== "typing");
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          content: data.response,
+          sender: "ai",
+          timestamp: new Date(),
+          // Add card attachment occasionally for engaging experience
+          attachedCard: Math.random() > 0.7 ? {
+            id: `card${Date.now()}`,
+            title: "Wisdom Gained",
+            rarity: ["common", "uncommon", "rare"][Math.floor(Math.random() * 3)] as "common" | "uncommon" | "rare",
+          } : undefined,
+        };
+        return [...withoutTyping, aiResponse];
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Remove typing indicator and add error message
+      setMessages(prev => {
+        const withoutTyping = prev.filter(msg => msg.id !== "typing");
+        const errorResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment. May Allah guide you in your quest for knowledge.",
+          sender: "ai",
+          timestamp: new Date(),
+        };
+        return [...withoutTyping, errorResponse];
+      });
     }
-  };
+  }, [inputValue, messages, onSendMessage]);
 
-  const handleSuggestedTopic = (topic: string) => {
+  const handleKeyPress = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    },
+    [handleSendMessage],
+  );
+
+  const handleSuggestedTopic = React.useCallback((topic: string) => {
     setInputValue(topic);
-  };
+  }, []);
 
   return (
     <Card className="w-full max-w-md mx-auto h-[600px] flex flex-col bg-background">
@@ -160,7 +203,18 @@ export default function HikmahChat({
                         : "bg-muted"
                     }`}
                   >
-                    {message.content}
+                    {message.id === "typing" ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                        </div>
+                        <span className="text-sm">{message.content}</span>
+                      </div>
+                    ) : (
+                      message.content
+                    )}
                   </div>
 
                   {message.attachedCard && (
@@ -191,10 +245,7 @@ export default function HikmahChat({
                   )}
 
                   <div className="text-xs text-muted-foreground">
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatTime(message.timestamp, isClient)}
                   </div>
                 </div>
               </div>
@@ -234,7 +285,7 @@ export default function HikmahChat({
           />
 
           <Button
-            onClick={handleSendMessage}
+            onClick={() => handleSendMessage()}
             size="icon"
             disabled={inputValue.trim() === ""}
             className="shrink-0"
