@@ -62,10 +62,15 @@ export class ChatService {
    * Check if a greeting should be sent based on conversation history
    */
   private shouldSendGreeting(conversationHistory: ChatMessage[]): boolean {
-    return !conversationHistory.some(msg => 
-      msg.content.includes('As-salamu alaykum') || 
-      msg.content.includes('Assalamu alaikum')
-    );
+    // Only send greeting if this is the first message (empty history)
+    // Or check if the AI has already sent a greeting in any of its messages
+    return conversationHistory.length === 0 || 
+      !conversationHistory.some(msg => 
+        msg.role === 'assistant' && (
+          msg.content.includes('As-salamu alaykum') || 
+          msg.content.includes('Assalamu alaikum')
+        )
+      );
   }
   
   /**
