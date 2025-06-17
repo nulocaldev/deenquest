@@ -41,11 +41,11 @@ export async function POST(request: NextRequest) {
       // Base response with personalized suggestions if analysis is available
       let chatResponse: any = {
         response,
-        suggestions: unlockData?.topics ? 
+        suggestions: unlockData?.context?.topics ? 
           generatePersonalizedSuggestions(
-            unlockData.topics, 
-            unlockData.emotionalTone || 'neutral', 
-            unlockData.knowledgeLevel || 'beginner'
+            unlockData.context.topics, 
+            unlockData.context.emotionalTone || 'neutral', 
+            unlockData.context.knowledgeLevel || 'beginner'
           ) : [
             "Tell me more about this topic",
             "Can you provide a Quranic perspective?", 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     console.error('Chat API Error:', error);
     
     // Create simple analysis for error suggestions
-    const mockAnalysis = createSimpleMockAnalysis(message || "general question");
+    const mockAnalysis = createSimpleMockAnalysis("general question");
     const errorSuggestions = generatePersonalizedSuggestions(
       mockAnalysis.topics,
       mockAnalysis.emotionalIndicators[0] || 'neutral',
