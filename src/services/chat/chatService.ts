@@ -28,6 +28,7 @@ export class ChatService {
     }
     
     // Format the response - NO GREETING PREFIX (handled by the front-end for first message only)
+    // This ensures we don't have duplicate greetings in the responses
     let chatResponse: ChatResponse = {
       response: response.trim(),
       suggestions: unlockData?.context?.topics ? 
