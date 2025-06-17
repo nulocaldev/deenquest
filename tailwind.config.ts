@@ -53,12 +53,12 @@ const config = {
           foreground: "hsl(var(--card-foreground))",
         },
         aurora: {
-          pink: "#ff006e",
-          purple: "#8338ec",
-          blue: "#3a86ff",
-          cyan: "#06ffa5",
-          yellow: "#ffbe0b",
-          gold: "#ffd700",
+          pink: "#e84d8a",
+          purple: "#8a63d2",
+          blue: "#4287f5",
+          cyan: "#38c7d8",
+          gold: "#f0b83c",
+          orange: "#ff9c41",
         },
         // New Pastel Glassmorphism Colors
         pastel: {

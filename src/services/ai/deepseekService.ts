@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getIslamicGuidancePrompt, getJournalPromptGeneratorPrompt } from './systemPrompts';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
@@ -29,7 +30,7 @@ export interface DeepSeekConfig {
   temperature?: number;
 }
 
-export class DeepSeekAPI {
+export class DeepSeekService {
   private apiKey: string;
   private baseURL: string;
   private timeout: number;
@@ -44,6 +45,9 @@ export class DeepSeekAPI {
     this.temperature = config.temperature || 0.7;
   }
 
+  /**
+   * Send a message to the DeepSeek AI model and get a response
+   */
   async chat(messages: DeepSeekMessage[], model: string = 'deepseek-chat'): Promise<string> {
     if (!this.apiKey) {
       console.warn('DeepSeek API key is missing, using fallback response');
@@ -81,19 +85,14 @@ export class DeepSeekAPI {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
           console.warn('Invalid DeepSeek API key, using fallback response');
-          return this.getFallbackResponse(messages[messages.length - 1]?.content || '');
         } else if (error.response?.status === 429) {
           console.warn('DeepSeek API rate limit exceeded, using fallback response');
-          return this.getFallbackResponse(messages[messages.length - 1]?.content || '');
         } else if (error.response?.status === 500) {
           console.warn('DeepSeek API server error, using fallback response');
-          return this.getFallbackResponse(messages[messages.length - 1]?.content || '');
         } else if (error.code === 'ECONNABORTED') {
           console.warn('DeepSeek API request timeout, using fallback response');
-          return this.getFallbackResponse(messages[messages.length - 1]?.content || '');
         } else if (error.code === 'ECONNREFUSED') {
           console.warn('Unable to connect to DeepSeek API, using fallback response');
-          return this.getFallbackResponse(messages[messages.length - 1]?.content || '');
         }
       }
       
@@ -102,21 +101,13 @@ export class DeepSeekAPI {
     }
   }
 
+  /**
+   * Generate an Islamic response to a user message
+   */
   async generateIslamicResponse(userMessage: string, context?: string): Promise<string> {
     const systemMessage: DeepSeekMessage = {
       role: 'system',
-      content: `You are a helpful AI assistant with knowledge of Islamic teachings. Provide thoughtful responses based on the Quran and authentic Hadith when relevant. Be natural and conversational while being respectful of Islamic principles.
-
-Guidelines:
-- Provide sources when quoting Quran or Hadith
-- Give practical, helpful advice
-- Be conversational and avoid excessive formality
-- Use Arabic terms sparingly and with context
-- Focus on answering the user's question directly
-- DO NOT start your responses with greetings like "Walaykoum Alsalam" or "Assalamu alaikum" unless the user just greeted you
-- If the user's message contains a greeting, acknowledge it naturally but don't repeat it in future messages
-
-${context ? `Context: ${context}` : ''}`
+      content: getIslamicGuidancePrompt(context)
     };
 
     const messages: DeepSeekMessage[] = [
@@ -130,17 +121,13 @@ ${context ? `Context: ${context}` : ''}`
     return await this.chat(messages);
   }
 
+  /**
+   * Generate a journal prompt based on a topic
+   */
   async generateJournalPrompt(topic?: string): Promise<string> {
     const systemMessage: DeepSeekMessage = {
       role: 'system',
-      content: `You are an Islamic reflection guide. Generate thoughtful journal prompts that encourage Islamic self-reflection, spiritual growth, and connection with Allah. The prompts should be introspective, meaningful, and help Muslims develop their relationship with their faith.
-
-Guidelines:
-- Create prompts that encourage deep reflection on Islamic values
-- Include references to Quranic verses or Hadith when appropriate
-- Focus on personal growth, gratitude, and spiritual development
-- Make prompts accessible for Muslims at different levels of knowledge
-- Encourage practical application of Islamic teachings`
+      content: getJournalPromptGeneratorPrompt()
     };
 
     const userMessage = topic 
@@ -158,6 +145,9 @@ Guidelines:
     return await this.chat(messages);
   }
 
+  /**
+   * Get a fallback response when the DeepSeek API is unavailable
+   */
   private getFallbackResponse(userMessage: string): string {
     // Islamic-themed fallback responses when DeepSeek API is unavailable
     const fallbackResponses = [
@@ -178,5 +168,5 @@ Guidelines:
   }
 }
 
-// Singleton instance
-export const deepseek = new DeepSeekAPI();
+// Export a singleton instance for convenience
+export const deepseekService = new DeepSeekService();

@@ -11,7 +11,7 @@ An elegant, AI-powered gamified Islamic learning companion featuring glass morph
 - **Interactive Games**: Engaging Islamic learning games
 - **User Profiles**: Personalized learning experience
 
-### 🤖 AI Integration (Hybrid API)
+### 🤖 AI Integration (Service-Oriented Architecture)
 - **DeepSeek AI**: Native integration with DeepSeek's powerful language models
 - **Content Unlocking**: Dynamically unlocks Islamic wisdom content based on conversation topics
 - **Spiritual Guidance**: Provides relevant spiritual guidance based on user conversations
@@ -61,8 +61,9 @@ An elegant, AI-powered gamified Islamic learning companion featuring glass morph
 
 ## 🧩 Main Components
 
-### Hybrid Chat API
-The chat API is located at `/src/app/api/chat/route.ts` and provides:
+### Chat API
+
+The chat API provides:
 - Basic chat functionality
 - Advanced content unlocking
 - Spiritual guidance
@@ -70,16 +71,16 @@ The chat API is located at `/src/app/api/chat/route.ts` and provides:
 
 Sample API request:
 ```javascript
-fetch('/api/chat', {
+fetch('/api/v1/chat', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
     message: "Tell me about patience in Islam",
-    context: "Islamic guidance chat",
     conversationHistory: [/* previous messages */],
-    userId: "user123"
+    userId: "user123",
+    enableUnlocking: true
   })
 })
 ```
@@ -90,6 +91,71 @@ The main dashboard is located at `/src/app/page.tsx` and features:
 - Quick access to Hikmah Cards, Journal, Games, and Profile
 - Progress tracking and goal setting
 - Recent content unlocks display
+
+## 🔄 Chat API & UI
+
+The DeenQuest Chat functionality has been refactored to a modern, service-oriented architecture:
+
+### Backend Architecture
+- **Versioned API**: Clean `/api/v1/chat` endpoint with backward compatibility
+- **Service Layer**: Separation of concerns with dedicated services
+- **Type Safety**: Comprehensive TypeScript interfaces for all data models
+- **Error Handling**: Unified error handling and response formatting
+- **Testing**: Jest-based test suite for all services
+
+### Frontend Architecture
+- **Context-based State**: React Context for centralized state management
+- **Modular Components**: Clean separation of UI concerns
+- **Type Safety**: Full TypeScript support throughout
+- **Responsive Design**: Mobile-first, accessible interface
+- **Theme Integration**: Aurora/glassmorphism theming
+
+### Key Files
+- **API**: `/src/app/api/v1/chat/route.ts`
+- **Services**: 
+  - `/src/services/ai/deepseekService.ts`
+  - `/src/services/chat/chatService.ts`
+  - `/src/services/content/contentUnlockService.ts`
+- **Frontend**:
+  - `/src/contexts/ChatContext.tsx` 
+  - `/src/components/chat/HikmahChat2.tsx`
+  - `/src/components/chat/ui/*` (modular UI components)
+
+### Testing
+Run the test suite to validate the chat implementation:
+```bash
+./run-tests.sh
+```
+
+See the full implementation documentation in `/docs/CHAT_API_DOCUMENTATION.md` and `/docs/CHAT_COMPONENTS_REFACTORING.md`.
+
+## 🏗️ Architecture
+
+DeenQuest follows a clean, service-oriented architecture with proper separation of concerns:
+
+### API Layer
+- **Versioned API**: `/src/app/api/v1/chat/route.ts` - Main versioned chat API endpoint
+- **Backward Compatibility**: `/src/app/api/chat/route.ts` - Maintains compatibility with existing clients
+
+### Service Layer
+- **Chat Service**: `/src/services/chat/chatService.ts` - Core chat business logic
+- **DeepSeek Service**: `/src/services/ai/deepseekService.ts` - AI integration
+- **Content Unlock Service**: `/src/services/content/contentUnlockService.ts` - Content unlocking logic
+
+### UI Layer
+- **Chat Components**: `/src/components/chat/HikmahChat2.tsx` - Main chat component
+- **UI Components**: `/src/components/chat/ui/*` - Reusable UI components for messages, input, etc.
+
+### Context Layer
+- **Chat Context**: `/src/contexts/ChatContext.tsx` - State management and API interaction
+
+### Types Layer
+- **Chat Types**: `/src/types/chat.ts` - Type definitions for chat functionality
+- **Content Types**: `/src/types/content.ts` - Type definitions for content unlocking
+
+### Utilities Layer
+- **API Response**: `/src/utils/apiResponse.ts` - Standardized API responses
+- **Error Handler**: `/src/utils/errorHandler.ts` - Centralized error handling
 
 ## 📚 Content Unlocking System
 

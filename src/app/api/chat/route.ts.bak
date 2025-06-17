@@ -1,41 +1,94 @@
-import { NextRequest } from 'next/server';
-import { chatService } from '@/services/chat/chatService';
-import { createSuccessResponse, createErrorResponse } from '@/utils/apiResponse';
-import { handleApiError, ValidationError } from '@/utils/errorHandler';
-import { ChatRequest } from '@/types/chat';
+import { NextRequest, NextResponse } from 'next/server';
+import { DeepSeekAPI } from '@/lib/deepseek';
+import { ConversationContext } from '@/lib/conversation-analyzer';
+import { ContentUnlockResult } from '@/lib/content-unlock-engine';
 
-/**
- * Main chat API route handler
- * This has been refactored to use the service-oriented architecture
- */
-export async function POST(request: NextRequest) {
-  try {
-    // Parse the request body
-    const requestData: ChatRequest = await request.json();
-    
-    // Validate required fields
-    if (!requestData.message) {
-      throw new ValidationError('Message is required');
-    }
-    
-    // Process the chat request
-    try {
-      const response = await chatService.processChat(requestData);
-      return createSuccessResponse(response);
-    } catch (chatError) {
-      console.warn('Chat processing error, using fallback:', chatError);
-      
-      // Use fallback response if chat processing fails
-      const fallbackResponse = chatService.getFallbackResponse(requestData.message);
-      return createSuccessResponse(fallbackResponse);
-    }
-  } catch (error) {
-    return handleApiError(error);
-  }
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
-// Set this API route to be dynamic (not static)
-export const dynamic = 'force-dynamic';
+interface ChatRequest {
+  message: string;
+  context?: string;
+  conversationHistory?: ChatMessage[];
+  userId?: string;
+}
+
+function shouldSendGreeting(conversationHistory: ChatMessage[]): boolean {
+  return !conversationHistory.some(msg => msg.content.includes('As-salamu alaykum'));
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { 
+      message, 
+      context, 
+      conversationHistory = [], 
+      userId = 'anonymous' 
+    }: ChatRequest = await request.json();
+
+    if (!message) {
+      return NextResponse.json(
+        { error: 'Message is required' },
+        { status: 400 }
+      );
+    }
+
+    const deepseek = new DeepSeekAPI({ apiKey: process.env.DEEPSEEK_API_KEY });
+
+    let greeting = '';
+    if (shouldSendGreeting(conversationHistory)) {
+      greeting = 'As-salamu alaykum!';
+    }
+
+    const response = await deepseek.generateIslamicResponse(message, context);
+
+    const unlockData = await processContentUnlocking(message, conversationHistory, userId);
+
+    let chatResponse: any = {
+      response: `${greeting} ${response}`.trim(),
+      suggestions: unlockData?.context?.topics ? 
+        generatePersonalizedSuggestions(
+          unlockData.context.topics, 
+          unlockData.context.emotionalTone || 'neutral', 
+          unlockData.context.knowledgeLevel || 'beginner'
+        ) : [
+          "Tell me more about this topic",
+          "Can you provide a Quranic perspective?", 
+          "What would the Prophet (PBUH) say about this?"
+        ]
+    };
+
+    if (unlockData) {
+      chatResponse = {
+        ...chatResponse,
+        unlocks: unlockData.unlocks,
+        spiritualGuidance: unlockData.spiritualGuidance,
+        conversationContext: unlockData.context
+      };
+    }
+
+    return NextResponse.json(chatResponse);
+  } catch (error) {
+    console.error('Chat API Error:', error);
+
+    const fallbackResponse = getFallbackResponse(message);
+    const mockAnalysis = createSimpleMockAnalysis(message);
+    const fallbackSuggestions = generatePersonalizedSuggestions(
+      mockAnalysis.topics,
+      mockAnalysis.emotionalIndicators[0] || 'neutral',
+      mockAnalysis.complexityScore > 7 ? 'advanced' : 
+      mockAnalysis.complexityScore > 4 ? 'intermediate' : 'beginner'
+    );
+
+    return NextResponse.json({
+      response: fallbackResponse,
+      suggestions: fallbackSuggestions,
+      isDeepSeek: false
+    });
+  }
+}
 
 async function processContentUnlocking(
   message: string,

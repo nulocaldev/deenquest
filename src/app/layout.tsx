@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import "../styles/frosted-glass.css";
+import "../styles/aurora-theme.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
