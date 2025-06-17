@@ -18,10 +18,7 @@ export class ChatService {
       enableUnlocking = true
     } = request;
 
-    // Check if we should send a greeting based on conversation history
-    const greeting = this.shouldSendGreeting(conversationHistory) ? 'As-salamu alaykum!' : '';
-    
-    // Generate response from DeepSeek
+    // Get response from DeepSeek
     const response = await deepseekService.generateIslamicResponse(message, context);
     
     // Process content unlocking if enabled
@@ -30,9 +27,9 @@ export class ChatService {
       unlockData = await contentUnlockService.checkForUnlocks(userId, message, conversationHistory);
     }
     
-    // Format the response
+    // Format the response - NO GREETING PREFIX (handled by the front-end for first message only)
     let chatResponse: ChatResponse = {
-      response: `${greeting} ${response}`.trim(),
+      response: response.trim(),
       suggestions: unlockData?.context?.topics ? 
         this.generatePersonalizedSuggestions(
           unlockData.context.topics, 
@@ -58,20 +55,8 @@ export class ChatService {
     return chatResponse;
   }
   
-  /**
-   * Check if a greeting should be sent based on conversation history
-   */
-  private shouldSendGreeting(conversationHistory: ChatMessage[]): boolean {
-    // Only send greeting if this is the first message (empty history)
-    // Or check if the AI has already sent a greeting in any of its messages
-    return conversationHistory.length === 0 || 
-      !conversationHistory.some(msg => 
-        msg.role === 'assistant' && (
-          msg.content.includes('As-salamu alaykum') || 
-          msg.content.includes('Assalamu alaikum')
-        )
-      );
-  }
+  // No longer using the greeting function as this is handled by the UI layer
+  // The deepseekService is instructed not to add greetings via system prompts
   
   /**
    * Generate personalized suggestions based on conversation context
