@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .test-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .error { background: #ffeaea; border-color: #f44336; }
+        button { background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #1976d2; }
+        pre { background: #f8f8f8; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .status { font-weight: bold; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DeenQuest Hybrid Chat API Test</h1>
+        
+        <div class="test-section" id="basic-test">
+            <h2>Test 1: Basic Chat (No Content Unlocking)</h2>
+            <button onclick="testBasicChat()">Run Basic Chat Test</button>
+            <div id="basic-results"></div>
+        </div>
+        
+        <div class="test-section" id="advanced-test">
+            <h2>Test 2: Advanced Chat (With Content Unlocking)</h2>
+            <button onclick="testAdvancedChat()">Run Advanced Chat Test</button>
+            <div id="advanced-results"></div>
+        </div>
+        
+        <div class="test-section" id="error-test">
+            <h2>Test 3: Error Handling</h2>
+            <button onclick="testErrorHandling()">Run Error Test</button>
+            <div id="error-results"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testBasicChat() {
+            const resultsDiv = document.getElementById('basic-results');
+            resultsDiv.innerHTML = '<div class="status">Testing basic chat...</div>';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: 'Tell me about patience in Islam',
+                        context: 'test context'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <div class="status success">✅ Basic Chat Test Passed</div>
+                    <p><strong>Response received:</strong> ${data.response ? 'Yes' : 'No'}</p>
+                    <p><strong>Suggestions:</strong> ${data.suggestions ? data.suggestions.length : 0}</p>
+                    <p><strong>Unlocks:</strong> ${data.unlocks ? 'Present (unexpected)' : 'None (expected)'}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="status error">❌ Basic Chat Test Failed</div>
+                    <p>Error: ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function testAdvancedChat() {
+            const resultsDiv = document.getElementById('advanced-results');
+            resultsDiv.innerHTML = '<div class="status">Testing advanced chat...</div>';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: 'I need guidance about being patient during hardship',
+                        context: 'advanced test context',
+                        userId: 'test_user_123',
+                        enableUnlocking: true,
+                        conversationHistory: [
+                            { role: 'user', content: 'I am struggling with patience' },
+                            { role: 'assistant', content: 'Patience is a virtue in Islam...' }
+                        ]
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <div class="status success">✅ Advanced Chat Test Passed</div>
+                    <p><strong>Response received:</strong> ${data.response ? 'Yes' : 'No'}</p>
+                    <p><strong>Suggestions:</strong> ${data.suggestions ? data.suggestions.length : 0}</p>
+                    <p><strong>Unlocks:</strong> ${data.unlocks ? data.unlocks.length : 0}</p>
+                    <p><strong>Spiritual Guidance:</strong> ${data.spiritualGuidance ? 'Yes' : 'No'}</p>
+                    <p><strong>Context:</strong> ${data.conversationContext ? 'Yes' : 'No'}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="status error">❌ Advanced Chat Test Failed</div>
+                    <p>Error: ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function testErrorHandling() {
+            const resultsDiv = document.getElementById('error-results');
+            resultsDiv.innerHTML = '<div class="status">Testing error handling...</div>';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        // Missing required message field
+                        context: 'error test'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.status === 400 && data.error) {
+                    resultsDiv.innerHTML = `
+                        <div class="status success">✅ Error Handling Test Passed</div>
+                        <p>Correctly returned 400 error for missing message</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="status error">❌ Error Handling Test Failed</div>
+                        <p>Expected 400 error, got ${response.status}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="status error">❌ Error Handling Test Failed</div>
+                    <p>Error: ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

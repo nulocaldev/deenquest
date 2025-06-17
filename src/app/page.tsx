@@ -48,6 +48,7 @@ interface UserStats {
   cardsCollected: number;
   journalStreak: number;
   communityRank: string;
+  userId: string; // Added for consistent user ID
 }
 
 export default function ChatFirstHomepage() {
@@ -64,12 +65,16 @@ export default function ChatFirstHomepage() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [dashboardUnlockedItems, setDashboardUnlockedItems] = useState<any[]>([]);
+  const [currentSpiritualGuidance, setCurrentSpiritualGuidance] = useState<string | null>(null);
+
 
   const [userStats] = useState<UserStats>({
     hikmahPoints: 1247,
     cardsCollected: 89,
     journalStreak: 12,
-    communityRank: "Seeker"
+    communityRank: "Seeker",
+    userId: `deenquest_user_${Math.random().toString(36).substr(2, 9)}` // Generate a basic unique ID
   });
 
   const quickActions: QuickAction[] = [
@@ -129,6 +134,7 @@ export default function ChatFirstHomepage() {
     const currentMessage = inputValue;
     setInputValue("");
     setIsLoading(true);
+    setCurrentSpiritualGuidance(null); // Clear previous guidance
 
     // Add typing indicator
     const typingMessage: Message = {
@@ -147,7 +153,9 @@ export default function ChatFirstHomepage() {
         },
         body: JSON.stringify({ 
           message: currentMessage,
-          context: messages.slice(-3).map(m => `${m.sender}: ${m.content}`).join('\n')
+          context: messages.slice(-5).map(m => `${m.sender === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n'), // Enhanced context
+          userId: userStats.userId, // Pass user ID
+          enableUnlocking: true // Always enable advanced features
         }),
       });
 
@@ -165,6 +173,18 @@ export default function ChatFirstHomepage() {
         };
         return [...withoutTyping, aiResponse];
       });
+
+      // Handle content unlocks
+      if (data.unlocks && data.unlocks.length > 0) {
+        setDashboardUnlockedItems(prev => [...prev, ...data.unlocks].slice(-5)); // Keep last 5 unlocks
+        // We'll add UI for this in the next step
+      }
+
+      // Handle spiritual guidance
+      if (data.spiritualGuidance) {
+        setCurrentSpiritualGuidance(data.spiritualGuidance);
+        // We'll add UI for this in the next step, possibly by appending to the AI message or a separate display
+      }
 
       // Occasionally show native sponsor after AI response
       if (Math.random() > 0.7) {
@@ -301,6 +321,12 @@ export default function ChatFirstHomepage() {
                               }`}
                             >
                               {message.content}
+                              {/* Display spiritual guidance with the AI message if it's the last AI message and guidance exists */}
+                              {message.sender === 'ai' && messages[messages.length -1].id === message.id && currentSpiritualGuidance && (
+                                <div className="mt-2 pt-2 border-t border-white/30">
+                                  <p className="text-xs italic text-frosted-light/90">✨ Spiritual Reflection: {currentSpiritualGuidance}</p>
+                                </div>
+                              )}
                             </div>
 
                             <div className="text-xs text-frosted-light">
@@ -368,6 +394,27 @@ export default function ChatFirstHomepage() {
                         </div>
                       </Link>
                     </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Recently Unlocked Wisdom */}
+            <Card className="frosted-card">
+              <CardHeader>
+                <CardTitle className="text-frosted-strong text-lg flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-400" />
+                  Recently Unlocked Wisdom
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {dashboardUnlockedItems.length === 0 && (
+                  <p className="text-sm text-frosted-light">No wisdom unlocked yet. Keep chatting to discover more!</p>
+                )}
+                {dashboardUnlockedItems.map((item, index) => (
+                  <div key={index} className="p-2 bg-white/10 rounded-md text-sm text-frosted">
+                    <span className="font-semibold">{item.type}:</span> {item.title}
+                    {item.details && <p className="text-xs text-frosted-light/80">{item.details}</p>}
                   </div>
                 ))}
               </CardContent>

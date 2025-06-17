@@ -1,0 +1,47 @@
+// Quick test of the hybrid chat API
+const testHybridAPI = async () => {
+  console.log('Testing Basic Chat (no unlocking)...');
+  
+  try {
+    const basicResponse = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Tell me about patience in Islam',
+        context: 'test context'
+      })
+    });
+    
+    const basicData = await basicResponse.json();
+    console.log('Basic chat response:', basicData);
+    
+    console.log('\nTesting Advanced Chat (with unlocking)...');
+    
+    const advancedResponse = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'I need guidance about being patient during hardship',
+        context: 'advanced test context',
+        userId: 'test_user_123',
+        enableUnlocking: true,
+        conversationHistory: [
+          { role: 'user', content: 'I am struggling with patience' },
+          { role: 'assistant', content: 'Patience is a virtue in Islam...' }
+        ]
+      })
+    });
+    
+    const advancedData = await advancedResponse.json();
+    console.log('Advanced chat response:', advancedData);
+    
+  } catch (error) {
+    console.error('Test failed:', error);
+  }
+};
+
+// Run test when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('Starting hybrid API test...');
+  testHybridAPI();
+});

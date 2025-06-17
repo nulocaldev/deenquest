@@ -16,7 +16,7 @@ export default function ChatPage() {
     {
       id: 1,
       type: "ai",
-      content: "As-salamu alaykum! I'm your Hikmah AI assistant. I'm here to help you with Islamic questions, provide guidance, and share wisdom from the Quran and Sunnah. How can I assist you today?",
+      content: "Welcome! I'm here to help you with Islamic questions, provide guidance, and share wisdom from the Quran and Sunnah. What would you like to explore today?",
       timestamp: new Date().toISOString(),
       suggestions: [
         "Tell me about the pillars of Islam",
@@ -29,6 +29,8 @@ export default function ChatPage() {
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [unlockedContent, setUnlockedContent] = useState<any[]>([]);
+  const [enableAdvancedFeatures, setEnableAdvancedFeatures] = useState(false);
+  const [userId] = useState(() => `user_${Math.random().toString(36).substr(2, 9)}`);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -84,19 +86,18 @@ export default function ChatPage() {
     setIsTyping(true);
 
     try {
-      // Call Dynamic Chat API
-      const response = await fetch('/api/chat/dynamic', {
+      // Call unified chat API with optional advanced features
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: message,
-          userId: 'user123', // In real app, get from auth
-          conversationHistory: messages.map(msg => ({
-            role: msg.type === 'user' ? 'user' : 'assistant',
-            content: msg.content
-          }))
+          context: "Islamic guidance and wisdom chat",
+          conversationHistory: messages.filter(m => m.type !== 'system').slice(-10), // Last 10 messages
+          userId: userId,
+          enableUnlocking: enableAdvancedFeatures
         }),
       });
 
@@ -107,83 +108,41 @@ export default function ChatPage() {
         type: "ai",
         content: data.response,
         timestamp: new Date().toISOString(),
-        suggestions: data.suggestions || [],
-        spiritualGuidance: data.spiritualGuidance
+        suggestions: data.suggestions || []
       };
 
       setMessages(prev => [...prev, aiResponse]);
-      
-      // Handle unlocked content
-      if (data.unlockedContent && data.unlockedContent.length > 0) {
-        setUnlockedContent(prev => [...prev, ...data.unlockedContent]);
-        // Show notification for unlocked content
-        data.unlockedContent.forEach((item: any) => {
-          console.log(`🎉 Unlocked: ${item.type} - ${item.title}`);
-        });
+
+      // Handle content unlocks if advanced features are enabled
+      if (enableAdvancedFeatures && data.unlocks && data.unlocks.length > 0) {
+        setUnlockedContent(prev => [...prev, ...data.unlocks]);
+        // Could show notification toast here
       }
+
+      // Handle spiritual guidance
+      if (data.spiritualGuidance) {
+        // Could show subtle spiritual guidance UI here
+        console.log('Spiritual guidance received:', data.spiritualGuidance);
+      }
+
     } catch (error) {
       console.error('Error sending message:', error);
       
-      // Fallback to basic chat API
-      try {
-        const fallbackResponse = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: message,
-            context: "Islamic guidance and wisdom chat"
-          }),
-        });
-
-        const fallbackData = await fallbackResponse.json();
-        
-        const aiResponse = {
-          id: messages.length + 2,
-          type: "ai",
-          content: fallbackData.response,
-          timestamp: new Date().toISOString(),
-          suggestions: [
-            "Tell me more about this topic",
-            "Can you provide a Quranic perspective?",
-            "What would the Prophet (PBUH) say about this?"
-          ]
-        };
-
-        setMessages(prev => [...prev, aiResponse]);
-      } catch (fallbackError) {
-        console.error('Fallback API also failed:', fallbackError);
-        
-        const errorResponse = {
-          id: messages.length + 2,
-          type: "ai",
-          content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment. May Allah guide and bless you.",
-          timestamp: new Date().toISOString(),
-          suggestions: [
-            "Try asking again",
-            "Check your connection",
-            "Ask a different question"
-          ]
-        };
-        
-        setMessages(prev => [...prev, errorResponse]);
-      }
+      const errorResponse = {
+        id: messages.length + 2,
+        type: "ai",
+        content: "I'm having trouble connecting right now. Please try again in a moment.",
+        timestamp: new Date().toISOString(),
+        suggestions: [
+          "Try asking again",
+          "Ask a different question"
+        ]
+      };
+      
+      setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsTyping(false);
     }
-  };
-
-  const generateAIResponse = (question: string): string => {
-    // Simple response generator - in real app, this would be an AI API call
-    const responses = [
-      "This is a thoughtful question. In Islamic tradition, we find guidance in both the Quran and the teachings of Prophet Muhammad (peace be upon him).",
-      "May Allah guide us all. The beauty of Islam lies in its comprehensive guidance for all aspects of life.",
-      "SubhanAllah, this reminds me of the verse: 'And whoever fears Allah - He will make for him a way out.' (Quran 65:2)",
-      "In the Sunnah, we learn that seeking knowledge is obligatory upon every Muslim. This question shows your dedication to learning.",
-      "Alhamdulillah for your curiosity. The Prophet (peace be upon him) said: 'The seeking of knowledge is obligatory upon every Muslim.'"
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -194,25 +153,25 @@ export default function ChatPage() {
   };
 
   // DEBUG: Always show a static button and debug info at the top
-  const [showDebug, setShowDebug] = useState(true);
+  const [showDebug, setShowDebug] = useState(false); // Set to false to hide by default
 
   return (
     <div className="min-h-screen elegant-bg flex flex-col">
-      {/* DEBUG PANEL - Always visible */}
-      <div style={{position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 9999, background: 'yellow', color: 'black', padding: 10, borderBottom: '2px solid red', fontWeight: 'bold'}}>
-        <span>DEBUG PANEL: </span>
-        <button style={{fontSize: 18, padding: 8, background: 'red', color: 'white', border: '2px solid black', borderRadius: 8, marginRight: 20}}>STATIC TEST BUTTON</button>
-        <span>messages.length: {messages.length} | first message suggestions: {JSON.stringify(messages[0]?.suggestions)} | hydrated: {typeof window !== 'undefined' ? 'yes' : 'no'}</span>
-        <button style={{marginLeft: 20, fontSize: 14}} onClick={() => setShowDebug((v) => !v)}>{showDebug ? 'Hide' : 'Show'} Debug State</button>
-      </div>
       {showDebug && (
-        <div style={{position: 'fixed', top: 50, left: 0, width: '100vw', zIndex: 9998, background: '#222', color: 'lime', padding: 10, borderBottom: '2px solid lime', fontSize: 12, maxHeight: 200, overflow: 'auto'}}>
-          <pre>{JSON.stringify(messages, null, 2)}</pre>
-        </div>
+        <>
+          <div style={{position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 9999, background: 'yellow', color: 'black', padding: 10, borderBottom: '2px solid red', fontWeight: 'bold'}}>
+            <span>DEBUG PANEL: </span>
+            <button style={{fontSize: 18, padding: 8, background: 'red', color: 'white', border: '2px solid black', borderRadius: 8, marginRight: 20}}>STATIC TEST BUTTON</button>
+            <span>messages.length: {messages.length} | first message suggestions: {JSON.stringify(messages[0]?.suggestions)} | hydrated: {typeof window !== 'undefined' ? 'yes' : 'no'}</span>
+            <button style={{marginLeft: 20, fontSize: 14}} onClick={() => setShowDebug((v) => !v)}>{showDebug ? 'Hide' : 'Show'} Debug State</button>
+          </div>
+          <div style={{position: 'fixed', top: 50, left: 0, width: '100vw', zIndex: 9998, background: '#222', color: 'lime', padding: 10, borderBottom: '2px solid lime', fontSize: 12, maxHeight: 200, overflow: 'auto', paddingTop: '60px' /* Ensure content below yellow bar */}}>
+            <pre>{JSON.stringify(messages, null, 2)}</pre>
+          </div>
+        </>
       )}
-
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full elegant-header">
+      <header className={`sticky top-0 z-50 w-full elegant-header ${showDebug ? 'pt-[100px]': ''}`}>
         <div className="container flex h-20 items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Link href="/">
@@ -229,12 +188,29 @@ export default function ChatPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-sm text-gray-300">Online</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-300">Advanced Features</label>
+              <button
+                onClick={() => setEnableAdvancedFeatures(!enableAdvancedFeatures)}
+                className={`w-10 h-6 rounded-full transition-colors duration-200 ${
+                  enableAdvancedFeatures ? 'bg-aurora-blue' : 'bg-gray-600'
+                }`}
+              >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${
+                    enableAdvancedFeatures ? 'translate-x-5' : 'translate-x-1'
+                  } mt-1`}
+                />
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-sm text-gray-300">Online</span>
+            </div>
           </div>
-        </div>        {/* DEBUG BANNER */}
-        </header>
+        </div>
+      </header>
 
       {/* Chat Messages */}
       <div className="flex-1 container px-6 py-4 overflow-hidden">
