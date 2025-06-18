@@ -1,4 +1,4 @@
-import { DeepSeekService } from '../ai/deepseekService';
+import { DeepSeekService, deepseekService as defaultDeepseekService } from '../ai/deepseekService';
 import { getIslamicGuidancePrompt } from '../ai/systemPrompts';
 import { contentUnlockService } from '../content/contentUnlockService';
 import { ChatMessage, ChatRequest, ChatResponse, ConversationContext, SpiritualGuidance } from '@/types/chat';
@@ -7,7 +7,10 @@ import { ChatMessage, ChatRequest, ChatResponse, ConversationContext, SpiritualG
  * Chat service handles the business logic for chat functionality
  */
 export class ChatService {
-  constructor(private deepseekService: DeepSeekService) {}
+  private deepseekService: DeepSeekService;
+  constructor(deepseekServiceInstance?: DeepSeekService) {
+    this.deepseekService = deepseekServiceInstance || defaultDeepseekService;
+  }
 
   /**
    * Process a chat request and generate a response
@@ -40,8 +43,14 @@ export class ChatService {
     };
 
     // Get response from DeepSeek
-    const responseContent = await this.deepseekService.generateIslamicResponse(message, context);
-    
+    const rawContent = await this.deepseekService.generateIslamicResponse(message, context);
+    // Trim and conditionally add greeting for first message
+    const trimmedContent = rawContent.trim();
+    const shouldGreet = !Array.isArray(conversationHistory) || conversationHistory.length === 0;
+    const responseText = shouldGreet
+      ? `As-salamu alaykum! ${trimmedContent}`
+      : trimmedContent;
+
     // Process content unlocking if enabled
     let unlockData: any = null;
     if (enableUnlocking) {
@@ -51,7 +60,7 @@ export class ChatService {
     // Format the response - NO GREETING PREFIX (handled by the front-end for first message only)
     // This ensures we don't have duplicate greetings in the responses
     let chatResponse: ChatResponse = {
-      response: responseContent.trim(),
+      response: responseText,
       suggestions: unlockData?.context?.topics ? 
         this.generatePersonalizedSuggestions(
           unlockData.context.topics, 
@@ -241,6 +250,5 @@ export class ChatService {
   }
 }
 
-// Initialize services
-const deepseekServiceInstance = new DeepSeekService();
-export const chatService = new ChatService(deepseekServiceInstance);
+// Export a singleton ChatService using the shared default service
+export const chatService = new ChatService();

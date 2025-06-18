@@ -67,6 +67,7 @@ function ChatInterface() {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-aurora-blue to-aurora-purple bg-clip-text text-transparent">
                 Hikmah Chat
               </h1>
+              <p className="text-xs text-gray-300">v2.0 – Jun 18, 2025</p>
               <p className="text-xs text-muted-foreground">
                 Islamic Guidance AI Assistant
               </p>
