@@ -166,7 +166,7 @@ describe('ChatService', () => {
     it('should use the fallback response if deepseekService throws an error', async () => {
       // Mock the deepseekService to throw an error
       (deepseekService.generateIslamicResponse as jest.Mock).mockRejectedValue(
-        new Error('DeepSeek service error')
+        new Error('API Error')
       );
       
       // Mock the fallback response
@@ -186,7 +186,7 @@ describe('ChatService', () => {
       } catch (error) {
         // The error should be propagated to be handled by the API route
         expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe('DeepSeek service error');
+        expect((error as Error).message).toBe('API Error');
       }
     });
   });

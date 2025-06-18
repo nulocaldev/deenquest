@@ -49,88 +49,44 @@ export interface ChatProviderProps {
   initialMessages?: Message[];
 }
 
-// Load persisted state from localStorage
-const loadPersistedState = (userId: string = 'default'): {
-  messages: Message[];
-  suggestions: Suggestion[];
-  unlockedContent: UnlockedContent[];
-} => {
-  if (typeof window === 'undefined') return { messages: [], suggestions: [], unlockedContent: [] };
-  
-  try {
-    const stored = localStorage.getItem(`chat_state_${userId}`);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        messages: parsed.messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        })),
-        suggestions: parsed.suggestions || [],
-        unlockedContent: parsed.unlockedContent.map((content: any) => ({
-          ...content,
-          unlockedAt: new Date(content.unlockedAt)
-        }))
-      };
-    }
-  } catch (error) {
-    console.error('Failed to load persisted chat state:', error);
-  }
-  return { messages: [], suggestions: [], unlockedContent: [] };
-};
-
-// Save state to localStorage
-const persistState = (state: Partial<ChatContextState>, userId: string = 'default') => {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.setItem(`chat_state_${userId}`, JSON.stringify(state));
-  } catch (error) {
-    console.error('Failed to persist chat state:', error);
-  }
-};
-
 // Chat Provider component
 export function ChatProvider({ 
   children, 
   userId = `user_${Math.random().toString(36).substring(2, 9)}`,
   initialMessages = []
 }: ChatProviderProps) {
-  const persistedState = loadPersistedState(userId);
-  const [messages, setMessages] = useState<Message[]>(
-    initialMessages.length > 0 ? initialMessages : persistedState.messages
-  );
-  const [suggestions, setSuggestions] = useState<Suggestion[]>(persistedState.suggestions);
-  const [unlockedContent, setUnlockedContent] = useState<UnlockedContent[]>(persistedState.unlockedContent);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('chatHistory');
+      if (stored) {
+        return JSON.parse(stored).map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+      }
+    }
+    // Default welcome message
+    return [
+      {
+        id: 'welcome',
+        role: 'assistant',
+        content: 'As-salamu alaykum! I\'m here to help you with Islamic questions, provide guidance, and share wisdom from the Quran and Sunnah. What would you like to explore today?',
+        timestamp: new Date()
+      }
+    ];
+  });
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [unlockedContent, setUnlockedContent] = useState<UnlockedContent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enableUnlocking, setEnableUnlocking] = useState(true);
 
-  // Load chat history from localStorage on mount
+  // Persist chat history to localStorage whenever messages change
   useEffect(() => {
-    const savedMessages = localStorage.getItem('chatHistory');
-    if (savedMessages) {
-      const parsedMessages = JSON.parse(savedMessages).map((msg: any) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
-      }));
-      setMessages(parsedMessages);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('chatHistory', JSON.stringify(messages));
     }
-  }, []);
-
-  // Save messages to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('chatHistory', JSON.stringify(messages));
   }, [messages]);
-
-  // Persist state changes
-  useEffect(() => {
-    persistState({
-      messages,
-      suggestions,
-      unlockedContent
-    }, userId);
-  }, [messages, suggestions, unlockedContent, userId]);
 
   // Convert our messages to the API format
   const formatMessagesForAPI = (): ChatMessage[] => {
@@ -174,10 +130,10 @@ export function ChatProvider({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: userMessage,
-          conversationHistory: messages,
-          userId: userId,
-          enableUnlocking: true
+          message: messageText,
+          conversationHistory: formatMessagesForAPI(),
+          userId,
+          enableUnlocking
         })
       });
 

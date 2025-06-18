@@ -22,6 +22,10 @@ import { UnlockedContentNotification } from './ui/UnlockedContentNotification';
 
 // Internal component that uses the ChatContext
 function ChatInterface() {
+  // Confirm updated code is loaded
+  useEffect(() => {
+    console.log('ChatInterface loaded with streaming features');
+  }, []);
   const { 
     messages, 
     suggestions, 

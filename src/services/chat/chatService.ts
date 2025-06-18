@@ -1,4 +1,5 @@
-import { deepseekService } from '../ai/deepseekService';
+import { DeepSeekService } from '../ai/deepseekService';
+import { getIslamicGuidancePrompt } from '../ai/systemPrompts';
 import { contentUnlockService } from '../content/contentUnlockService';
 import { ChatMessage, ChatRequest, ChatResponse, ConversationContext, SpiritualGuidance } from '@/types/chat';
 
@@ -6,6 +7,8 @@ import { ChatMessage, ChatRequest, ChatResponse, ConversationContext, SpiritualG
  * Chat service handles the business logic for chat functionality
  */
 export class ChatService {
+  constructor(private deepseekService: DeepSeekService) {}
+
   /**
    * Process a chat request and generate a response
    */
@@ -18,8 +21,26 @@ export class ChatService {
       enableUnlocking = true
     } = request;
 
+    // Convert history to DeepSeek format
+    const historyMessages = conversationHistory.map(msg => ({
+      role: msg.role as 'user' | 'assistant' | 'system',
+      content: msg.content
+    }));
+
+    // Add system message
+    const systemMessage = {
+      role: 'system' as const,
+      content: getIslamicGuidancePrompt(context)
+    };
+
+    // Add user message
+    const userMessage = {
+      role: 'user' as const,
+      content: message
+    };
+
     // Get response from DeepSeek
-    const response = await deepseekService.generateIslamicResponse(message, context);
+    const responseContent = await this.deepseekService.generateIslamicResponse(message, context);
     
     // Process content unlocking if enabled
     let unlockData: any = null;
@@ -30,7 +51,7 @@ export class ChatService {
     // Format the response - NO GREETING PREFIX (handled by the front-end for first message only)
     // This ensures we don't have duplicate greetings in the responses
     let chatResponse: ChatResponse = {
-      response: response.trim(),
+      response: responseContent.trim(),
       suggestions: unlockData?.context?.topics ? 
         this.generatePersonalizedSuggestions(
           unlockData.context.topics, 
@@ -40,7 +61,8 @@ export class ChatService {
           "Tell me more about this topic",
           "Can you provide a Quranic perspective?", 
           "What would the Prophet (PBUH) say about this?"
-        ]
+        ],
+      isDeepSeek: true
     };
     
     // Add unlock data if available
@@ -209,7 +231,7 @@ export class ChatService {
     const { message, context } = request;
 
     // Simulate streaming by splitting the response into chunks
-    const fullResponse = await deepseekService.generateIslamicResponse(message, context);
+    const fullResponse = await this.deepseekService.generateIslamicResponse(message, context);
     const chunks = fullResponse.match(/.{1,50}/g) || [];
 
     for (const chunk of chunks) {
@@ -219,5 +241,6 @@ export class ChatService {
   }
 }
 
-// Export a singleton instance for convenience
-export const chatService = new ChatService();
+// Initialize services
+const deepseekServiceInstance = new DeepSeekService();
+export const chatService = new ChatService(deepseekServiceInstance);

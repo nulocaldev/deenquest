@@ -51,84 +51,37 @@ export class DeepSeekService {
    * Send a message to the DeepSeek AI model with retry mechanism
    */
   async generateIslamicResponse(message: string, context?: string): Promise<string> {
-    let lastError: Error | null = null;
-    
-    for (let attempt = 0; attempt < this.retryCount; attempt++) {
-      try {
-        const response = await this.makeApiCall(message, context);
-        return response;
-      } catch (error) {
-        console.error(`API call attempt ${attempt + 1} failed:`, error);
-        lastError = error as Error;
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
-      }
-    }
-    
-    throw new Error(`Failed to get AI response after ${this.retryCount} attempts. Last error: ${lastError?.message}`);
-  }
-
-  private async makeApiCall(message: string, context?: string): Promise<string> {
-    if (!this.apiKey) {
-      throw new Error('DeepSeek API key is not configured');
-    }
-
-    const systemMessage: DeepSeekMessage = {
-      role: 'system',
-      content: getIslamicGuidancePrompt(context)
-    };
-
+    const systemPrompt = getIslamicGuidancePrompt(context);
     const messages: DeepSeekMessage[] = [
-      systemMessage,
-      {
-        role: 'user',
-        content: message
-      }
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: message }
     ];
 
     try {
-      const response = await axios.post<DeepSeekResponse>(
-        this.baseURL,
-        {
-          model: 'deepseek-chat',
-          messages,
-          stream: false,
-          temperature: this.temperature,
-          max_tokens: this.maxTokens,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          timeout: this.timeout,
-        }
-      );
-
-      const responseContent = response.data.choices[0]?.message?.content;
-      if (!responseContent) {
-        throw new Error('Empty response from DeepSeek API');
-      }
-
-      return responseContent;
+      const response = await this.makeRequest(messages);
+      return response.choices[0].message.content;
     } catch (error) {
-      console.error('DeepSeek API Error:', error);
-      
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 401) {
-          throw new Error('Invalid DeepSeek API key');
-        } else if (error.response?.status === 429) {
-          throw new Error('DeepSeek API rate limit exceeded');
-        } else if (error.response?.status === 500) {
-          throw new Error('DeepSeek API server error');
-        } else if (error.code === 'ECONNABORTED') {
-          throw new Error('DeepSeek API request timeout');
-        } else if (error.code === 'ECONNREFUSED') {
-          throw new Error('Unable to connect to DeepSeek API');
-        }
-      }
-      
-      throw new Error('Failed to get response from DeepSeek API');
+      console.error('Error generating Islamic response:', error);
+      return this.getFallbackResponse(message);
     }
+  }
+
+  protected makeRequest(messages: DeepSeekMessage[]): Promise<DeepSeekResponse> {
+    return axios.post(
+      this.baseURL,
+      {
+        messages,
+        max_tokens: this.maxTokens,
+        temperature: this.temperature,
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: this.timeout,
+      }
+    ).then(response => response.data);
   }
 
   /**
@@ -152,7 +105,13 @@ export class DeepSeekService {
       }
     ];
 
-    return await this.chat(messages);
+    try {
+      const response = await this.makeRequest(messages);
+      return response.choices[0].message.content;
+    } catch (error) {
+      console.error('Error generating journal prompt:', error);
+      return "I'm having trouble coming up with a journal prompt right now. Please try again later.";
+    }
   }
 
   /**
